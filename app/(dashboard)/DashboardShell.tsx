@@ -15,6 +15,7 @@ import {
     MessageCircle,
     Sparkles,
     Workflow,
+    Zap,
 } from 'lucide-react'
 import React from 'react'
 import { HealthStatus } from '@/lib/health-check'
@@ -344,6 +345,7 @@ export function DashboardShell({
         { path: '/templates', label: 'Templates', icon: FileText },
         { path: '/contacts', label: 'Contatos', icon: Users },
         { path: '/settings/ai', label: 'IA', icon: Sparkles },
+        { path: '/settings/automations', label: 'Automação', icon: Zap },
         { path: '/settings', label: 'Configurações', icon: Settings },
     ].filter(item => !item.hidden), [isDevMode])
 
@@ -366,6 +368,7 @@ export function DashboardShell({
         if (path.startsWith('/submissions')) return 'Submissões'
         if (path === '/settings/ai') return 'Central de IA'
         if (path === '/settings/ai/agents') return 'Agentes IA'
+        if (path === '/settings/automations') return 'Automação'
         if (path.startsWith('/settings')) return 'Configurações'
         return 'App'
     }

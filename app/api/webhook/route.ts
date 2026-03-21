@@ -42,6 +42,8 @@ import {
   handleDeliveryStatus,
 } from '@/lib/inbox/inbox-webhook'
 
+import { sendWhatsAppMessage } from '@/lib/whatsapp-send'
+
 // Get WhatsApp Access Token from centralized helper
 async function getWhatsAppAccessToken(): Promise<string | null> {
   const credentials = await getWhatsAppCredentials()
@@ -964,6 +966,33 @@ export async function POST(request: NextRequest) {
           } catch (inboxError) {
             // Best-effort: don't fail webhook if inbox persist fails
             console.warn('[Webhook] Failed to persist to inbox:', inboxError)
+          }
+
+          // =================================================================
+          // Automação: verificar auto-replies configurados
+          // =================================================================
+          if (text && from) {
+            try {
+              const { data: matchedReply } = await supabaseAdmin
+                .from('auto_replies')
+                .select('response_message')
+                .eq('is_active', true)
+                .ilike('trigger_text', text.trim())
+                .limit(1)
+                .maybeSingle()
+
+              if (matchedReply) {
+                await sendWhatsAppMessage({
+                  to: from,
+                  type: 'text',
+                  text: matchedReply.response_message,
+                })
+                console.log(`⚡ Auto-reply disparado para ${from}: trigger="${text}"`)
+              }
+            } catch (autoReplyError) {
+              // Best-effort: não falha o webhook se auto-reply falhar
+              console.warn('[Webhook] Falha ao processar auto-reply:', autoReplyError)
+            }
           }
 
           // =================================================================
