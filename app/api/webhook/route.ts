@@ -43,6 +43,7 @@ import {
 } from '@/lib/inbox/inbox-webhook'
 
 import { sendWhatsAppMessage } from '@/lib/whatsapp-send'
+import { sendMessage as sendInboxMessage } from '@/lib/inbox/inbox-service'
 
 // Get WhatsApp Access Token from centralized helper
 async function getWhatsAppAccessToken(): Promise<string | null> {
@@ -952,6 +953,7 @@ export async function POST(request: NextRequest) {
           // =================================================================
           // T046-T047: Persist to Inbox and trigger AI if mode=bot
           // =================================================================
+          let inboxConversationId: string | null = null
           try {
             const inboxResult = await handleInboundMessage({
               messageId: message.id || '',
@@ -962,6 +964,7 @@ export async function POST(request: NextRequest) {
               mediaUrl: message.image?.url || message.video?.url || message.audio?.url || message.document?.url || null,
               phoneNumberId: phoneNumberId || undefined,
             })
+            inboxConversationId = inboxResult.conversationId
             console.log(`📥 Inbox: conversation=${inboxResult.conversationId}, message=${inboxResult.messageId}, ai=${inboxResult.triggeredAI}`)
           } catch (inboxError) {
             // Best-effort: don't fail webhook if inbox persist fails
@@ -982,11 +985,13 @@ export async function POST(request: NextRequest) {
                 .maybeSingle()
 
               if (matchedReply) {
-                await sendWhatsAppMessage({
-                  to: from,
-                  type: 'text',
-                  text: matchedReply.response_message,
-                })
+                if (inboxConversationId) {
+                  // Envia e salva no inbox (aparece na conversa)
+                  await sendInboxMessage(inboxConversationId, matchedReply.response_message)
+                } else {
+                  // Fallback: só envia via WhatsApp se inbox não estiver disponível
+                  await sendWhatsAppMessage({ to: from, type: 'text', text: matchedReply.response_message })
+                }
                 console.log(`⚡ Auto-reply disparado para ${from}: trigger="${text}"`)
               }
             } catch (autoReplyError) {
