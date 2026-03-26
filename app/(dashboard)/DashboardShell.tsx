@@ -16,6 +16,7 @@ import {
     Sparkles,
     Workflow,
     Zap,
+    Activity,
 } from 'lucide-react'
 import React from 'react'
 import { HealthStatus } from '@/lib/health-check'
@@ -346,6 +347,7 @@ export function DashboardShell({
         { path: '/contacts', label: 'Contatos', icon: Users },
         { path: '/settings/ai', label: 'IA', icon: Sparkles },
         { path: '/settings/automations', label: 'Automação', icon: Zap },
+        { path: '/settings/meta-diagnostics', label: 'Diagnóstico Meta', icon: Activity },
         { path: '/settings', label: 'Configurações', icon: Settings },
     ].filter(item => !item.hidden), [isDevMode])
 
