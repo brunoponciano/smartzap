@@ -28,6 +28,10 @@ const PUBLIC_API_ROUTES = [
     '/api/installer',         // Setup inicial (protegido separadamente após install)
     '/api/campaign/workflow', // Chamado internamente pelo QStash
     '/api/public',            // Rotas explicitamente públicas (lead forms, etc)
+    '/api/attendants/validate', // Validar token de atendente — segurança é o token em si
+    '/api/attendant',           // APIs do PWA de atendimento (conversas, mensagens)
+    '/api/push/subscribe',      // Registrar dispositivo para push — PWA
+    '/api/push/unsubscribe',    // Remover dispositivo de push — PWA
 ]
 
 export async function proxy(request: NextRequest) {
