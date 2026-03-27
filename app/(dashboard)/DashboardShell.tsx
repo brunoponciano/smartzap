@@ -17,6 +17,7 @@ import {
     Workflow,
     Zap,
     Activity,
+    UserCheck,
 } from 'lucide-react'
 import React from 'react'
 import { HealthStatus } from '@/lib/health-check'
@@ -347,6 +348,7 @@ export function DashboardShell({
         { path: '/contacts', label: 'Contatos', icon: Users },
         { path: '/settings/ai', label: 'IA', icon: Sparkles },
         { path: '/settings/automations', label: 'Automação', icon: Zap },
+        { path: '/settings/attendants', label: 'Atendentes', icon: UserCheck },
         { path: '/settings/meta-diagnostics', label: 'Diagnóstico Meta', icon: Activity },
         { path: '/settings', label: 'Configurações', icon: Settings },
     ].filter(item => !item.hidden), [isDevMode])
@@ -371,6 +373,7 @@ export function DashboardShell({
         if (path === '/settings/ai') return 'Central de IA'
         if (path === '/settings/ai/agents') return 'Agentes IA'
         if (path === '/settings/automations') return 'Automação'
+        if (path === '/settings/attendants') return 'Atendentes'
         if (path.startsWith('/settings')) return 'Configurações'
         return 'App'
     }
