@@ -224,11 +224,18 @@ function ThemeProvider({ children }: { children: ReactNode }) {
 
 function AttendimentoLayoutInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams()
-  // Se não houver token na URL (ex: PWA abrindo pelo ícone), tenta o localStorage
+  // Se não houver token na URL (ex: PWA abrindo pelo ícone), tenta localStorage e depois cookie
+  // Cookie é mais confiável no iOS: Safari e PWA (Home Screen) compartilham cookies mas não localStorage
   const urlToken = searchParams.get('token')
   let token = urlToken
   if (!token) {
     try { token = localStorage.getItem('attendant_token') } catch {}
+  }
+  if (!token) {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)attendant_token=([^;]+)/)
+      if (match) token = decodeURIComponent(match[1])
+    } catch {}
   }
 
   return (

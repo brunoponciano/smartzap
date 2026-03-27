@@ -76,12 +76,15 @@ export function AttendantProvider({ children, token }: AttendantProviderProps) {
           setIsAuthenticated(true)
           setError(null)
           // Persiste token para o PWA funcionar sem o parâmetro na URL
+          // Cookie é mais confiável que localStorage no iOS (Safari ↔ PWA compartilham cookies)
           try { localStorage.setItem('attendant_token', token) } catch {}
+          try { document.cookie = `attendant_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax` } catch {}
         } else {
           setError(data.error || 'Token inválido')
           setIsAuthenticated(false)
           // Remove token inválido/expirado do storage
           try { localStorage.removeItem('attendant_token') } catch {}
+          try { document.cookie = 'attendant_token=; path=/; max-age=0; SameSite=Lax' } catch {}
         }
       } catch (err) {
         console.error('[AttendantProvider] Erro ao validar token:', err)
