@@ -64,6 +64,7 @@ export function useInbox(options: UseInboxOptions = {}) {
     hasNextPage,
   } = useConversations({
     page,
+    limit: 100,
     status: statusFilter ?? undefined,
     mode: modeFilter ?? undefined,
     labelId: labelFilter ?? undefined,
