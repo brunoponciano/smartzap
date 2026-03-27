@@ -75,9 +75,13 @@ export function AttendantProvider({ children, token }: AttendantProviderProps) {
           setAttendant(data.attendant)
           setIsAuthenticated(true)
           setError(null)
+          // Persiste token para o PWA funcionar sem o parâmetro na URL
+          try { localStorage.setItem('attendant_token', token) } catch {}
         } else {
           setError(data.error || 'Token inválido')
           setIsAuthenticated(false)
+          // Remove token inválido/expirado do storage
+          try { localStorage.removeItem('attendant_token') } catch {}
         }
       } catch (err) {
         console.error('[AttendantProvider] Erro ao validar token:', err)

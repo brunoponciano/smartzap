@@ -224,7 +224,12 @@ function ThemeProvider({ children }: { children: ReactNode }) {
 
 function AttendimentoLayoutInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+  // Se não houver token na URL (ex: PWA abrindo pelo ícone), tenta o localStorage
+  const urlToken = searchParams.get('token')
+  let token = urlToken
+  if (!token) {
+    try { token = localStorage.getItem('attendant_token') } catch {}
+  }
 
   return (
     <AttendantProvider token={token}>
