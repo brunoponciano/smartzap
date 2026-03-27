@@ -44,6 +44,7 @@ import {
 
 import { sendWhatsAppMessage } from '@/lib/whatsapp-send'
 import { sendMessage as sendInboxMessage } from '@/lib/inbox/inbox-service'
+import { sendNewMessageNotification } from '@/lib/push-notifications'
 
 // Get WhatsApp Access Token from centralized helper
 async function getWhatsAppAccessToken(): Promise<string | null> {
@@ -969,6 +970,13 @@ export async function POST(request: NextRequest) {
           } catch (inboxError) {
             // Best-effort: don't fail webhook if inbox persist fails
             console.warn('[Webhook] Failed to persist to inbox:', inboxError)
+          }
+
+          // =================================================================
+          // Push notification para atendentes (fire-and-forget)
+          // =================================================================
+          if (inboxConversationId && text) {
+            sendNewMessageNotification(from, text, inboxConversationId).catch(() => {})
           }
 
           // =================================================================
