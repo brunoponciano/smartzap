@@ -22,6 +22,7 @@ export async function PATCH(
     if (body.trigger_text !== undefined) update.trigger_text = body.trigger_text.trim()
     if (body.response_message !== undefined) update.response_message = body.response_message.trim()
     if (body.is_active !== undefined) update.is_active = body.is_active
+    if (body.tag !== undefined) update.tag = body.tag?.trim() || null
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })

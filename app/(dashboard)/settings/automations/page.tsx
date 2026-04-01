@@ -12,6 +12,7 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
+  Tag,
 } from 'lucide-react'
 import { Page, PageDescription, PageHeader, PageTitle } from '@/components/ui/page'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ interface AutoReply {
   id: string
   trigger_text: string
   response_message: string
+  tag: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -43,7 +45,7 @@ async function fetchAutoReplies(): Promise<AutoReply[]> {
   return res.json()
 }
 
-async function createAutoReply(data: { trigger_text: string; response_message: string }): Promise<AutoReply> {
+async function createAutoReply(data: { trigger_text: string; response_message: string; tag?: string }): Promise<AutoReply> {
   const res = await fetch('/api/automations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -84,23 +86,25 @@ function AutoReplyCard({
   autoReply: AutoReply
   onToggle: (active: boolean) => void
   onDelete: () => void
-  onUpdate: (data: { trigger_text: string; response_message: string }) => void
+  onUpdate: (data: { trigger_text: string; response_message: string; tag?: string }) => void
   isDeleting: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTrigger, setEditTrigger] = useState(autoReply.trigger_text)
   const [editMessage, setEditMessage] = useState(autoReply.response_message)
+  const [editTag, setEditTag] = useState(autoReply.tag ?? '')
 
   const handleSave = () => {
     if (!editTrigger.trim()) { toast.error('Gatilho é obrigatório'); return }
     if (!editMessage.trim()) { toast.error('Mensagem é obrigatória'); return }
-    onUpdate({ trigger_text: editTrigger.trim(), response_message: editMessage.trim() })
+    onUpdate({ trigger_text: editTrigger.trim(), response_message: editMessage.trim(), tag: editTag.trim() || undefined })
     setIsEditing(false)
   }
 
   const handleCancel = () => {
     setEditTrigger(autoReply.trigger_text)
     setEditMessage(autoReply.response_message)
+    setEditTag(autoReply.tag ?? '')
     setIsEditing(false)
   }
 
@@ -126,6 +130,15 @@ function AutoReplyCard({
               className="resize-none"
             />
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-zinc-400">Tag a aplicar no contato (opcional)</Label>
+            <Input
+              value={editTag}
+              onChange={(e) => setEditTag(e.target.value)}
+              placeholder="Ex: interessado"
+              className="max-w-xs"
+            />
+          </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSave}>
               <Check size={14} className="mr-1.5" />
@@ -145,6 +158,12 @@ function AutoReplyCard({
                 <Zap size={12} />
                 {autoReply.trigger_text}
               </span>
+              {autoReply.tag && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-xs">
+                  <Tag size={10} />
+                  {autoReply.tag}
+                </span>
+              )}
               {!autoReply.is_active && (
                 <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">Inativo</span>
               )}
@@ -197,6 +216,7 @@ function AutoReplyCard({
 function CreateForm({ onSuccess }: { onSuccess: () => void }) {
   const [trigger, setTrigger] = useState('')
   const [message, setMessage] = useState('')
+  const [tag, setTag] = useState('')
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
@@ -205,6 +225,7 @@ function CreateForm({ onSuccess }: { onSuccess: () => void }) {
       toast.success('Automação criada!')
       setTrigger('')
       setMessage('')
+      setTag('')
       queryClient.invalidateQueries({ queryKey: ['auto-replies'] })
       onSuccess()
     },
@@ -217,7 +238,7 @@ function CreateForm({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault()
     if (!trigger.trim()) { toast.error('Gatilho é obrigatório'); return }
     if (!message.trim()) { toast.error('Mensagem de resposta é obrigatória'); return }
-    mutation.mutate({ trigger_text: trigger.trim(), response_message: message.trim() })
+    mutation.mutate({ trigger_text: trigger.trim(), response_message: message.trim(), tag: tag.trim() || undefined })
   }
 
   return (
@@ -251,6 +272,20 @@ function CreateForm({ onSuccess }: { onSuccess: () => void }) {
           rows={4}
           className="resize-none"
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="tag">Tag a aplicar no contato <span className="text-zinc-500">(opcional)</span></Label>
+        <Input
+          id="tag"
+          value={tag}
+          onChange={(e) => setTag(e.target.value)}
+          placeholder="Ex: interessado"
+          className="max-w-xs"
+        />
+        <p className="text-xs text-zinc-500">
+          Quando o lead clicar, essa tag será adicionada automaticamente ao contato
+        </p>
       </div>
 
       <Button type="submit" disabled={mutation.isPending || !trigger.trim() || !message.trim()}>

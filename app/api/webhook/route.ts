@@ -986,7 +986,7 @@ export async function POST(request: NextRequest) {
             try {
               const { data: matchedReply } = await supabaseAdmin
                 .from('auto_replies')
-                .select('response_message')
+                .select('response_message, tag')
                 .eq('is_active', true)
                 .ilike('trigger_text', text.trim())
                 .limit(1)
@@ -1001,6 +1001,23 @@ export async function POST(request: NextRequest) {
                   await sendWhatsAppMessage({ to: from, type: 'text', text: matchedReply.response_message })
                 }
                 console.log(`⚡ Auto-reply disparado para ${from}: trigger="${text}"`)
+
+                // Aplica tag ao contato se configurada
+                if (matchedReply.tag) {
+                  const { data: contact } = await supabaseAdmin
+                    .from('contacts')
+                    .select('id')
+                    .or(`phone.eq.${from},phone.eq.+${from}`)
+                    .maybeSingle()
+                  if (contact?.id) {
+                    await supabaseAdmin.rpc('bulk_update_contact_tags', {
+                      p_ids: [contact.id],
+                      p_tags_to_add: [matchedReply.tag],
+                      p_tags_to_remove: [],
+                    })
+                    console.log(`🏷️ Tag "${matchedReply.tag}" aplicada ao contato ${from}`)
+                  }
+                }
               }
             } catch (autoReplyError) {
               // Best-effort: não falha o webhook se auto-reply falhar

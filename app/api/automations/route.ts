@@ -43,6 +43,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const trigger_text = body.trigger_text?.trim()
     const response_message = body.response_message?.trim()
+    const tag = body.tag?.trim() || null
 
     if (!trigger_text) {
       return NextResponse.json({ error: 'Texto do gatilho é obrigatório' }, { status: 400 })
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('auto_replies')
-      .insert({ trigger_text, response_message })
+      .insert({ trigger_text, response_message, tag })
       .select()
       .single()
 
