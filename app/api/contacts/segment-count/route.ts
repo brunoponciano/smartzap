@@ -50,8 +50,9 @@ export async function GET(request: Request) {
       .from('contacts')
       .select('phone,tags', { count: 'exact' })
 
-    // Validate tags to prevent PostgREST filter injection
-    const safeTags = tags.filter(tag => /^[\w\s\-áàãâéêíóôõúüçÁÀÃÂÉÊÍÓÔÕÚÜÇ]+$/i.test(tag))
+    // Sanitiza tags: remove espaços extras e descarta strings vazias ou muito longas.
+    // A segurança contra injeção é garantida pelo JSON.stringify nas queries PostgREST.
+    const safeTags = tags.map(tag => tag.trim()).filter(tag => tag.length > 0 && tag.length <= 100)
 
     // Em modo AND, filtro de tags no SQL é seguro (reduz dataset).
     // Em modo OR com localização, NÃO filtra tags no SQL — senão elimina contatos
