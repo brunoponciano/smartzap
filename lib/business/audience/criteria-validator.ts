@@ -9,6 +9,24 @@ import { Contact, ContactStatus } from '@/types'
 import { normalizePhoneNumber, getCountryCallingCodeFromPhone } from '@/lib/phone-formatter'
 import { getBrazilUfFromPhone } from '@/lib/br-geo'
 
+/**
+ * Sanitiza uma tag que pode estar como JSON-encoded string (ex: '["tag"]' → 'tag').
+ * Espelho da função em stats-calculator.ts para garantir consistência no filtro.
+ */
+function sanitizeTagValue(raw: unknown): string[] {
+  const s = String(raw ?? '').trim()
+  if (!s) return []
+  if (s.startsWith('[') && s.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(s)
+      if (Array.isArray(parsed)) {
+        return parsed.flat(Infinity).map((t: unknown) => String(t ?? '').trim()).filter(Boolean)
+      }
+    } catch { /* not JSON */ }
+  }
+  return [s]
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -190,8 +208,9 @@ export function isContactEligible(
     }
   }
 
-  // Tags filter
-  const tags = contact.tags || []
+  // Tags filter — sanitiza para lidar com tags armazenadas como JSON string
+  const tags = (contact.tags || []).flatMap((t) => sanitizeTagValue(t))
+  const tagsLower = tags.map((t) => t.toLowerCase())
 
   // No tags filter
   if (criteria.noTags) {
@@ -205,7 +224,7 @@ export function isContactEligible(
   if (includeTags.length > 0) {
     const normalizedInclude = includeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
     if (normalizedInclude.length > 0) {
-      const hasAny = tags.some((t) => normalizedInclude.includes(String(t || '').trim().toLowerCase()))
+      const hasAny = tagsLower.some((t) => normalizedInclude.includes(t))
       if (!hasAny) {
         return { eligible: false, reason: 'MISSING_TAG' }
       }
@@ -214,7 +233,7 @@ export function isContactEligible(
     // Legacy fallback
     const targetTag = String(criteria.includeTag).trim().toLowerCase()
     if (targetTag) {
-      const hasTag = tags.some((t) => String(t || '').trim().toLowerCase() === targetTag)
+      const hasTag = tagsLower.some((t) => t === targetTag)
       if (!hasTag) {
         return { eligible: false, reason: 'MISSING_TAG' }
       }
@@ -226,7 +245,7 @@ export function isContactEligible(
   if (excludeTags.length > 0) {
     const normalizedExclude = excludeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
     if (normalizedExclude.length > 0) {
-      const hasExcluded = tags.some((t) => normalizedExclude.includes(String(t || '').trim().toLowerCase()))
+      const hasExcluded = tagsLower.some((t) => normalizedExclude.includes(t))
       if (hasExcluded) {
         return { eligible: false, reason: 'EXCLUDED_TAG' }
       }
