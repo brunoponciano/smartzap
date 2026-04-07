@@ -95,6 +95,8 @@ export const initialAudienceState: AudienceState = {
   audienceCriteria: {
     status: 'OPT_IN',
     includeTag: null,
+    includeTags: [],
+    excludeTags: [],
     createdWithinDays: null,
     excludeOptOut: true,
     noTags: false,

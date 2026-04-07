@@ -384,6 +384,8 @@ export const useCampaignWizardController = () => {
           criteria: {
             status: 'ALL',
             includeTag: null,
+            includeTags: [],
+            excludeTags: [],
             createdWithinDays: null,
             excludeOptOut: false,
             noTags: false,

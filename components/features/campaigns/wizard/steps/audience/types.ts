@@ -6,6 +6,8 @@ import { CampaignValidation } from '@/lib/meta-limits';
 export interface AudienceCriteria {
   status: 'OPT_IN' | 'OPT_OUT' | 'UNKNOWN' | 'ALL';
   includeTag?: string | null;
+  includeTags?: string[];
+  excludeTags?: string[];
   createdWithinDays?: number | null;
   excludeOptOut?: boolean;
   noTags?: boolean;

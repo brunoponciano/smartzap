@@ -16,6 +16,8 @@ export type QuickEditFocus =
 export interface AudienceDraft {
   status: 'OPT_IN' | 'OPT_OUT' | 'UNKNOWN' | 'ALL';
   includeTag?: string | null;
+  includeTags?: string[];
+  excludeTags?: string[];
   createdWithinDays?: number | null;
   excludeOptOut?: boolean;
   noTags?: boolean;
@@ -133,6 +135,8 @@ export interface UseCampaignWizardUIReturn {
 const DEFAULT_AUDIENCE_DRAFT: AudienceDraft = {
   status: 'OPT_IN',
   includeTag: null,
+  includeTags: [],
+  excludeTags: [],
   createdWithinDays: null,
   excludeOptOut: true,
   noTags: false,
