@@ -56,6 +56,22 @@ export function useAudienceSelection({
       return `${label} • ${count} contatos`;
     }
 
+    const includeTags = audienceCriteria?.includeTags ?? [];
+    const excludeTags = audienceCriteria?.excludeTags ?? [];
+
+    if (includeTags.length > 0 || excludeTags.length > 0) {
+      const parts: string[] = [];
+      if (includeTags.length > 0) {
+        parts.push(`Tags: ${includeTags.join(', ')}`);
+      }
+      if (excludeTags.length > 0) {
+        parts.push(`Excluindo: ${excludeTags.join(', ')}`);
+      }
+      const count = audienceStats?.eligible ?? 0;
+      return `${parts.join(' • ')} • ${count} contatos`;
+    }
+
+    // Legacy fallback
     if (audienceCriteria?.includeTag) {
       const tag = String(audienceCriteria.includeTag).trim();
       const tagKey = tag.toLowerCase();
@@ -75,6 +91,8 @@ export function useAudienceSelection({
     if (!audienceCriteria) return audiencePreset === 'all';
     const status = audienceCriteria.status ?? 'ALL';
     const includeTag = (audienceCriteria.includeTag || '').trim();
+    const includeTags = audienceCriteria.includeTags ?? [];
+    const excludeTags = audienceCriteria.excludeTags ?? [];
     const uf = (audienceCriteria.uf || '').trim();
     const ddi = (audienceCriteria.ddi || '').trim();
     const cfk = (audienceCriteria.customFieldKey || '').trim();
@@ -84,6 +102,8 @@ export function useAudienceSelection({
     return (
       status === 'ALL' &&
       !includeTag &&
+      includeTags.length === 0 &&
+      excludeTags.length === 0 &&
       !uf &&
       !ddi &&
       !cfk &&
