@@ -32,6 +32,10 @@ export interface AudienceCriteria {
   status: CriteriaStatus
   /** Include only contacts with this specific tag */
   includeTag?: string | null
+  /** Include contacts that have at least one of these tags (OR logic). Takes priority over includeTag. */
+  includeTags?: string[]
+  /** Exclude contacts that have any of these tags (OR logic). Applied after inclusion filter. */
+  excludeTags?: string[]
   /** Include only contacts created within N days */
   createdWithinDays?: number | null
   /** Exclude opted-out contacts (always true in practice) */
@@ -196,13 +200,35 @@ export function isContactEligible(
     }
   }
 
-  // Include tag filter
-  if (criteria.includeTag) {
+  // Include tags filter (array takes priority over legacy includeTag)
+  const includeTags = criteria.includeTags ?? []
+  if (includeTags.length > 0) {
+    const normalizedInclude = includeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
+    if (normalizedInclude.length > 0) {
+      const hasAny = tags.some((t) => normalizedInclude.includes(String(t || '').trim().toLowerCase()))
+      if (!hasAny) {
+        return { eligible: false, reason: 'MISSING_TAG' }
+      }
+    }
+  } else if (criteria.includeTag) {
+    // Legacy fallback
     const targetTag = String(criteria.includeTag).trim().toLowerCase()
     if (targetTag) {
       const hasTag = tags.some((t) => String(t || '').trim().toLowerCase() === targetTag)
       if (!hasTag) {
         return { eligible: false, reason: 'MISSING_TAG' }
+      }
+    }
+  }
+
+  // Exclude tags filter
+  const excludeTags = criteria.excludeTags ?? []
+  if (excludeTags.length > 0) {
+    const normalizedExclude = excludeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
+    if (normalizedExclude.length > 0) {
+      const hasExcluded = tags.some((t) => normalizedExclude.includes(String(t || '').trim().toLowerCase()))
+      if (hasExcluded) {
+        return { eligible: false, reason: 'EXCLUDED_TAG' }
       }
     }
   }
@@ -329,6 +355,8 @@ export function createDefaultCriteria(): AudienceCriteria {
   return {
     status: 'OPT_IN',
     includeTag: null,
+    includeTags: [],
+    excludeTags: [],
     createdWithinDays: null,
     excludeOptOut: true,
     noTags: false,
