@@ -56,6 +56,8 @@ function defaultCriteria(overrides: Partial<AudienceCriteria> = {}): AudienceCri
   return {
     status: 'OPT_IN',
     includeTag: null,
+    includeTags: [],
+    excludeTags: [],
     createdWithinDays: null,
     excludeOptOut: true,
     noTags: false,
@@ -192,6 +194,120 @@ describe('isContactEligible', () => {
       const contact = makeContact({ tags: ['vip'] })
       const result = isContactEligible(contact, defaultCriteria({ noTags: true }), emptySuppressions)
       expect(result).toEqual({ eligible: false, reason: 'HAS_TAGS' })
+    })
+  })
+
+  describe('includeTags filter (array)', () => {
+    it('accepts contact that has at least one of the includeTags', () => {
+      const contact = makeContact({ tags: ['lead', 'vip'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: ['vip', 'premium'] }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+
+    it('rejects contact that has none of the includeTags', () => {
+      const contact = makeContact({ tags: ['lead'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: ['vip', 'premium'] }),
+        emptySuppressions
+      )
+      expect(result).toEqual({ eligible: false, reason: 'MISSING_TAG' })
+    })
+
+    it('includeTags matching is case-insensitive', () => {
+      const contact = makeContact({ tags: ['VIP'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: ['vip'] }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+
+    it('empty includeTags array does not filter (no restriction)', () => {
+      const contact = makeContact({ tags: [] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: [] }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+
+    it('includeTags takes priority over legacy includeTag when non-empty', () => {
+      const contact = makeContact({ tags: ['lead'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: ['vip'], includeTag: 'lead' }),
+        emptySuppressions
+      )
+      expect(result).toEqual({ eligible: false, reason: 'MISSING_TAG' })
+    })
+
+    it('falls back to legacy includeTag when includeTags is empty', () => {
+      const contact = makeContact({ tags: ['lead'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: [], includeTag: 'lead' }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+  })
+
+  describe('excludeTags filter', () => {
+    it('rejects contact that has any of the excludeTags', () => {
+      const contact = makeContact({ tags: ['vip', 'nao_assisistiu'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ excludeTags: ['nao_assisistiu'] }),
+        emptySuppressions
+      )
+      expect(result).toEqual({ eligible: false, reason: 'EXCLUDED_TAG' })
+    })
+
+    it('accepts contact that has none of the excludeTags', () => {
+      const contact = makeContact({ tags: ['vip'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ excludeTags: ['nao_assisistiu'] }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+
+    it('excludeTags matching is case-insensitive', () => {
+      const contact = makeContact({ tags: ['NAO_ASSISISTIU'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ excludeTags: ['nao_assisistiu'] }),
+        emptySuppressions
+      )
+      expect(result).toEqual({ eligible: false, reason: 'EXCLUDED_TAG' })
+    })
+
+    it('empty excludeTags array does not filter', () => {
+      const contact = makeContact({ tags: ['vip'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ excludeTags: [] }),
+        emptySuppressions
+      )
+      expect(result.eligible).toBe(true)
+    })
+
+    it('exclusion applies even when contact passes inclusion filter', () => {
+      const contact = makeContact({ tags: ['vip', 'nao_assisistiu'] })
+      const result = isContactEligible(
+        contact,
+        defaultCriteria({ includeTags: ['vip'], excludeTags: ['nao_assisistiu'] }),
+        emptySuppressions
+      )
+      expect(result).toEqual({ eligible: false, reason: 'EXCLUDED_TAG' })
     })
   })
 
@@ -399,6 +515,8 @@ describe('createDefaultCriteria', () => {
     expect(criteria).toEqual({
       status: 'OPT_IN',
       includeTag: null,
+      includeTags: [],
+      excludeTags: [],
       createdWithinDays: null,
       excludeOptOut: true,
       noTags: false,
