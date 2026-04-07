@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Braces, Calendar as CalendarIcon, Check, Eye, FolderIcon, Layers, MessageSquare, Plus, RefreshCw, Save, Search, Sparkles, Users, Wand2 } from 'lucide-react'
+import { Braces, Calendar as CalendarIcon, Check, Eye, FolderIcon, Layers, MessageSquare, MinusCircle, Plus, PlusCircle, RefreshCw, Save, Search, Sparkles, Users, Wand2 } from 'lucide-react'
 import { CustomFieldsSheet } from '@/components/features/contacts/CustomFieldsSheet'
 import {
   Sheet,
@@ -818,26 +818,43 @@ export default function CampaignsNewRealPage() {
                                     Buscar tag
                                   </button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-56 p-0" align="start">
+                                <PopoverContent className="w-64 p-0" align="start">
                                   <Command>
                                     <CommandInput placeholder="Buscar tag..." />
                                     <CommandList>
                                       <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
                                       <CommandGroup>
                                         {ctrl.allTags.map((item) => {
-                                          const active = ctrl.selectedTags.includes(item.tag)
+                                          const isIncluded = ctrl.selectedTags.includes(item.tag)
+                                          const isExcluded = ctrl.excludedTags.includes(item.tag)
                                           return (
-                                            <CommandItem
-                                              key={item.tag}
-                                              value={item.tag}
-                                              onSelect={() => {
-                                                ctrl.toggleSelection(item.tag, ctrl.selectedTags, ctrl.setSelectedTags)
-                                                setTagSearchOpen(false)
-                                              }}
-                                            >
+                                            <CommandItem key={item.tag} value={item.tag} onSelect={() => {}}>
                                               <span className="flex-1">{item.tag}</span>
-                                              <span className="text-xs text-[var(--ds-text-muted)]">{item.count}</span>
-                                              {active && <Check className="ml-1 size-3 text-emerald-500" />}
+                                              <span className="text-xs text-[var(--ds-text-muted)] mr-2">{item.count}</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  ctrl.toggleSelection(item.tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                                  if (ctrl.excludedTags.includes(item.tag)) ctrl.toggleSelection(item.tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                                  setTagSearchOpen(false)
+                                                }}
+                                                className={`p-0.5 rounded ${isIncluded ? 'text-emerald-500' : 'text-[var(--ds-text-muted)] hover:text-emerald-500'}`}
+                                                title="Incluir"
+                                              >
+                                                <PlusCircle className="size-3.5" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  ctrl.toggleSelection(item.tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                                  if (ctrl.selectedTags.includes(item.tag)) ctrl.toggleSelection(item.tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                                  setTagSearchOpen(false)
+                                                }}
+                                                className={`p-0.5 rounded ml-1 ${isExcluded ? 'text-orange-500' : 'text-[var(--ds-text-muted)] hover:text-orange-500'}`}
+                                                title="Excluir"
+                                              >
+                                                <MinusCircle className="size-3.5" />
+                                              </button>
                                             </CommandItem>
                                           )
                                         })}
@@ -857,43 +874,91 @@ export default function CampaignsNewRealPage() {
                             )}
                             {ctrl.tagChips.map((tag) => {
                               const count = ctrl.tagCounts[tag]
-                              const active = ctrl.selectedTags.includes(tag)
+                              const isIncluded = ctrl.selectedTags.includes(tag)
+                              const isExcluded = ctrl.excludedTags.includes(tag)
                               return (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)}
-                                  className={`rounded-full border px-3 py-1 text-xs ${
-                                    active
-                                      ? 'border-emerald-600 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-100'
-                                      : 'border-[var(--ds-border-default)] bg-[var(--ds-bg-elevated)] text-[var(--ds-text-secondary)]'
-                                  }`}
-                                >
-                                  <span>{tag}</span>
+                                <div key={tag} className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs ${
+                                  isIncluded
+                                    ? 'border-emerald-600 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-100'
+                                    : isExcluded
+                                    ? 'border-orange-600 dark:border-orange-400/40 bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-200'
+                                    : 'border-[var(--ds-border-default)] bg-[var(--ds-bg-elevated)] text-[var(--ds-text-secondary)]'
+                                }`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                      if (ctrl.excludedTags.includes(tag)) ctrl.toggleSelection(tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                    }}
+                                    className="hover:opacity-70"
+                                    title="Incluir"
+                                  >
+                                    <PlusCircle className="size-3" />
+                                  </button>
+                                  <span className="mx-1">{tag}</span>
                                   {typeof count === 'number' && (
-                                    <sup className="ml-1 text-[8px] leading-none text-amber-700 dark:text-amber-300">{count}</sup>
+                                    <sup className="text-[8px] leading-none text-amber-700 dark:text-amber-300 mr-1">{count}</sup>
                                   )}
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      ctrl.toggleSelection(tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                      if (ctrl.selectedTags.includes(tag)) ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                    }}
+                                    className="hover:opacity-70"
+                                    title="Excluir"
+                                  >
+                                    <MinusCircle className="size-3" />
+                                  </button>
+                                </div>
                               )
                             })}
-                            {ctrl.selectedTags
+                            {[...ctrl.selectedTags, ...ctrl.excludedTags]
                               .filter((tag) => !ctrl.tagChips.includes(tag))
+                              .filter((tag, i, arr) => arr.indexOf(tag) === i)
                               .map((tag) => {
                                 const count = ctrl.tagCounts[tag]
+                                const isIncluded = ctrl.selectedTags.includes(tag)
+                                const isExcluded = ctrl.excludedTags.includes(tag)
                                 return (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    onClick={() => ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)}
-                                    className="rounded-full border border-emerald-600 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 text-xs text-emerald-700 dark:text-emerald-100"
-                                  >
-                                    <span>{tag}</span>
+                                  <div key={tag} className={`inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-xs ${
+                                    isIncluded
+                                      ? 'border-emerald-600 dark:border-emerald-400/40 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-100'
+                                      : 'border-orange-600 dark:border-orange-400/40 bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-200'
+                                  }`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                        if (isExcluded) ctrl.toggleSelection(tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                      }}
+                                      className="hover:opacity-70"
+                                      title="Incluir"
+                                    >
+                                      <PlusCircle className="size-3" />
+                                    </button>
+                                    <span className="mx-1">{tag}</span>
                                     {typeof count === 'number' && (
-                                      <sup className="ml-1 text-[8px] leading-none text-amber-700 dark:text-amber-300">{count}</sup>
+                                      <sup className="text-[8px] leading-none text-amber-700 dark:text-amber-300 mr-1">{count}</sup>
                                     )}
-                                  </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        ctrl.toggleSelection(tag, ctrl.excludedTags, ctrl.setExcludedTags)
+                                        if (isIncluded) ctrl.toggleSelection(tag, ctrl.selectedTags, ctrl.setSelectedTags)
+                                      }}
+                                      className="hover:opacity-70"
+                                      title="Excluir"
+                                    >
+                                      <MinusCircle className="size-3" />
+                                    </button>
+                                  </div>
                                 )
                               })}
+                          </div>
+                          <div className="mt-2 flex gap-3 text-[10px] text-[var(--ds-text-muted)]">
+                            <span className="flex items-center gap-1"><PlusCircle className="size-3 text-emerald-500" /> Incluir</span>
+                            <span className="flex items-center gap-1"><MinusCircle className="size-3 text-orange-500" /> Excluir</span>
                           </div>
                         </div>
                         <div>

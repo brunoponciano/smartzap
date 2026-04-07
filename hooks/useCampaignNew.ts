@@ -160,6 +160,7 @@ export const useCampaignNewController = () => {
   const [collapseAudienceChoice, setCollapseAudienceChoice] = useState(false)
   const [collapseQuickSegments, setCollapseQuickSegments] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [excludedTags, setExcludedTags] = useState<string[]>([])
   const [selectedCountries, setSelectedCountries] = useState<string[]>([])
   const [selectedStates, setSelectedStates] = useState<string[]>([])
   const [testContactSearch, setTestContactSearch] = useState('')
@@ -303,11 +304,12 @@ export const useCampaignNewController = () => {
   })
 
   const segmentCountQuery = useQuery({
-    queryKey: ['segment-count', combineMode, selectedTags, selectedCountries, selectedStates],
+    queryKey: ['segment-count', combineMode, selectedTags, excludedTags, selectedCountries, selectedStates],
     queryFn: async () => {
       const params = new URLSearchParams()
       params.set('combine', combineMode)
       if (selectedTags.length) params.set('tags', selectedTags.join(','))
+      if (excludedTags.length) params.set('excludeTags', excludedTags.join(','))
       if (selectedCountries.length) params.set('countries', selectedCountries.join(','))
       if (selectedStates.length) params.set('states', selectedStates.join(','))
       return fetchJson<{ total: number; matched: number }>(`/api/contacts/segment-count?${params.toString()}`)
@@ -634,7 +636,7 @@ export const useCampaignNewController = () => {
     const contacts = await fetchJson<Contact[]>('/api/contacts')
     if (audienceMode === 'todos') return contacts
 
-    if (!selectedTags.length && !selectedCountries.length && !selectedStates.length) {
+    if (!selectedTags.length && !excludedTags.length && !selectedCountries.length && !selectedStates.length) {
       return contacts
     }
 
@@ -643,6 +645,11 @@ export const useCampaignNewController = () => {
       const phone = String(contact.phone || '')
       const country = selectedCountries.length ? resolveCountry(phone) : null
       const uf = selectedStates.length ? getBrazilUfFromPhone(phone) : null
+
+      // Exclusão: remove contato se tiver qualquer tag excluída
+      if (excludedTags.length && excludedTags.some((tag) => contactTags.includes(tag))) {
+        return false
+      }
 
       const tagMatches = selectedTags.map((tag) => contactTags.includes(tag))
       const countryMatches = selectedCountries.map((code) => Boolean(country && country === code))
@@ -1086,6 +1093,7 @@ export const useCampaignNewController = () => {
     configuredContact?.id,
     combineMode,
     selectedTags.join(','),
+    excludedTags.join(','),
     selectedCountries.join(','),
     selectedStates.join(','),
     templateVars.header.map((item) => item.value).join('|'),
@@ -1548,6 +1556,8 @@ export const useCampaignNewController = () => {
     // Tags
     selectedTags,
     setSelectedTags,
+    excludedTags,
+    setExcludedTags,
     tagCountsQuery,
     tagChips,
     tagCounts,
