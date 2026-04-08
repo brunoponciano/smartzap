@@ -16,6 +16,8 @@ import { createHash } from 'crypto'
 import { getWhatsAppCredentials } from '@/lib/whatsapp-credentials'
 import { fetchWithTimeout, safeJson } from '@/lib/server-http'
 
+export const maxDuration = 60
+
 function hashConfig(input: unknown): string {
   // Observação: o objetivo é agrupar configs; não precisamos de criptografia forte aqui.
   // JSON.stringify é estável o suficiente porque este objeto tem chaves fixas.
@@ -594,10 +596,10 @@ const workflowHandler = serve<CampaignWorkflowInput>(
         cfg = await getAdaptiveThrottleConfigWithSource().catch(() => null)
         console.log(`[Workflow] Throttle config from ${cfg?.source ?? 'fallback'}`)
       }
-      const rawBatchSize = Number(cfg?.config?.batchSize ?? process.env.WHATSAPP_WORKFLOW_BATCH_SIZE ?? '10')
+      const rawBatchSize = Number(cfg?.config?.batchSize ?? process.env.WHATSAPP_WORKFLOW_BATCH_SIZE ?? '150')
       const batchSize = Number.isFinite(rawBatchSize)
         ? Math.max(1, Math.min(200, Math.floor(rawBatchSize)))
-        : 10
+        : 150
 
       const contactBatches: Contact[][] = []
       for (let i = 0; i < contacts.length; i += batchSize) {
@@ -649,10 +651,10 @@ const workflowHandler = serve<CampaignWorkflowInput>(
         let targetMpsForBatch: number | null = null
         const floorDelayMs = Number(adaptiveConfig?.sendFloorDelayMs ?? process.env.WHATSAPP_SEND_FLOOR_DELAY_MS ?? '0')
 
-        const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '1')
+        const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '8')
         const concurrency = Number.isFinite(rawConcurrency)
           ? Math.max(1, Math.min(50, Math.floor(rawConcurrency)))
-          : 1
+          : 8
 
         // Broadcast efêmero de progresso (UI em tempo real) — best-effort.
         // DB continua sendo a fonte da verdade; isto só melhora UX.
@@ -2451,14 +2453,14 @@ const workflowHandler = serve<CampaignWorkflowInput>(
       try {
         // Usa a config que já foi carregada no prepare-batches
         const adaptiveConfig = cfgForBatching?.config || null
-        const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '1')
+        const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '8')
         const concurrency = Number.isFinite(rawConcurrency)
           ? Math.max(1, Math.min(50, Math.floor(rawConcurrency)))
-          : 1
-        const rawBatchSize = Number(adaptiveConfig?.batchSize ?? process.env.WHATSAPP_WORKFLOW_BATCH_SIZE ?? '10')
+          : 8
+        const rawBatchSize = Number(adaptiveConfig?.batchSize ?? process.env.WHATSAPP_WORKFLOW_BATCH_SIZE ?? '150')
         const configuredBatchSize = Number.isFinite(rawBatchSize)
           ? Math.max(1, Math.min(200, Math.floor(rawBatchSize)))
-          : 10
+          : 150
 
         // Agrega batches (se a tabela existir)
         let sumMetaTimeMs = 0
