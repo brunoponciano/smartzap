@@ -36,11 +36,13 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url)
     const tags = parseList(url.searchParams.get('tags'))
+    const excludeTags = parseList(url.searchParams.get('excludeTags'))
     const countries = parseList(url.searchParams.get('countries'))
     const states = parseList(url.searchParams.get('states'))
     const combine = (url.searchParams.get('combine') || 'or').toLowerCase() === 'and' ? 'and' : 'or'
 
     const hasLocationFilters = countries.length > 0 || states.length > 0
+    const safeExcludeTags = excludeTags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0 && t.length <= 100)
 
     // Construir query base com filtro de tags no SQL
     // Usa operador JSONB cs (@>) do PostgreSQL.
@@ -48,7 +50,8 @@ export async function GET(request: Request) {
     // Para OR: múltiplos @> combinados via .or()
     let query = supabase
       .from('contacts')
-      .select('phone,tags', { count: 'exact' })
+      .select('phone,tags,status', { count: 'exact' })
+      .neq('status', 'opt_out')
 
     // Sanitiza tags: remove espaços extras e descarta strings vazias ou muito longas.
     // A segurança contra injeção é garantida pelo JSON.stringify nas queries PostgREST.
@@ -66,6 +69,14 @@ export async function GET(request: Request) {
           .map((tag) => `tags.cs.${JSON.stringify([tag])}`)
           .join(',')
         query = query.or(orConditions)
+      }
+    }
+
+    // Exclusão de tags no SQL: remove contatos que tenham qualquer tag excluída.
+    // Usa NOT @> (não contém) para cada tag — aplicado antes do limite de linhas.
+    if (safeExcludeTags.length > 0 && !hasLocationFilters) {
+      for (const tag of safeExcludeTags) {
+        query = query.not('tags', 'cs', JSON.stringify([tag]))
       }
     }
 
@@ -96,6 +107,13 @@ export async function GET(request: Request) {
       const phone = String(contact.phone || '')
       const country = countries.length ? resolveCountry(phone) : null
       const uf = states.length ? getBrazilUfFromPhone(phone) : null
+      const contactTags: string[] = Array.isArray((contact as any).tags) ? (contact as any).tags : []
+      const contactTagsLower = contactTags.map((t: string) => String(t).toLowerCase())
+
+      // Exclusão in-memory para filtros de localização (SQL não pôde aplicar antes)
+      if (safeExcludeTags.length > 0 && safeExcludeTags.some((t) => contactTagsLower.includes(t))) {
+        return count
+      }
 
       const countryMatches = countries.map((code) => Boolean(country && country === code))
       const stateMatches = states.map((code) => Boolean(uf && uf === code))
@@ -104,8 +122,7 @@ export async function GET(request: Request) {
       // Quando tags JÁ foram filtradas no SQL (AND, ou OR sem localização), não duplicar filtro.
       const tagMatches: boolean[] = []
       if (!applyTagFilterInSql && safeTags.length > 0) {
-        const contactTags: string[] = Array.isArray((contact as any).tags) ? (contact as any).tags : []
-        const hasTagMatch = safeTags.some((t) => contactTags.includes(t))
+        const hasTagMatch = safeTags.some((t) => contactTagsLower.includes(t.toLowerCase()))
         tagMatches.push(hasTagMatch)
       }
 
