@@ -452,32 +452,28 @@ export const MessageBubble = memo(function MessageBubble({
             <>
               {message_type === 'image' && media_url && (
                 <div className="mb-2 rounded-md overflow-hidden bg-white/5 border border-white/10">
-                  <img src={media_url} alt="Imagem recebida" className="max-w-[280px] max-h-[300px] object-cover" />
+                  <img src={`/api/media?url=${encodeURIComponent(media_url)}`} alt="Imagem recebida" className="max-w-[280px] max-h-[300px] object-cover" />
                 </div>
               )}
 
               {message_type === 'video' && media_url && (
                 <div className="mb-2 rounded-md overflow-hidden bg-white/5 border border-white/10">
-                  <video src={media_url} controls className="max-w-[280px] max-h-[300px]" />
+                  <video src={`/api/media?url=${encodeURIComponent(media_url)}`} controls className="max-w-[280px] max-h-[300px]" />
                 </div>
               )}
 
               {message_type === 'audio' && media_url && (
                 <div className="mb-2">
-                  <audio src={media_url} controls className="h-10 w-[240px]" />
-                  <a href={media_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-400 underline mt-1 block break-all">
-                    Testar Link / ID Raw: {media_url}
-                  </a>
+                  <audio src={`/api/media?url=${encodeURIComponent(media_url)}`} controls className="h-10 w-[240px]" />
                 </div>
               )}
 
               {message_type === 'document' && media_url && (
                 <div className="mb-2">
-                  <a href={media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-[var(--ds-bg-surface)]/50 hover:bg-[var(--ds-bg-hover)] border border-[var(--ds-border-subtle)] transition-colors text-sm text-blue-400">
+                  <a href={`/api/media?url=${encodeURIComponent(media_url)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-[var(--ds-bg-surface)]/50 hover:bg-[var(--ds-bg-hover)] border border-[var(--ds-border-subtle)] transition-colors text-sm text-blue-400">
                     <span className="text-xl">📄</span>
                     <span className="truncate flex-1">Abrir Documento</span>
                   </a>
-                  <p className="text-[10px] text-zinc-400 mt-1 break-all">{media_url}</p>
                 </div>
               )}
 
