@@ -465,6 +465,9 @@ export const MessageBubble = memo(function MessageBubble({
               {message_type === 'audio' && media_url && (
                 <div className="mb-2">
                   <audio src={media_url} controls className="h-10 w-[240px]" />
+                  <a href={media_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-zinc-400 underline mt-1 block break-all">
+                    Testar Link / ID Raw: {media_url}
+                  </a>
                 </div>
               )}
 
@@ -474,11 +477,12 @@ export const MessageBubble = memo(function MessageBubble({
                     <span className="text-xl">📄</span>
                     <span className="truncate flex-1">Abrir Documento</span>
                   </a>
+                  <p className="text-[10px] text-zinc-400 mt-1 break-all">{media_url}</p>
                 </div>
               )}
 
               {/* Regular message content with WhatsApp formatting */}
-              {content && (
+              {content && content !== `[${message_type}]` && (
                 <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                   <WhatsAppFormattedText text={content} />
                 </p>
