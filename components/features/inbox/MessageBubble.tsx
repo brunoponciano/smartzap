@@ -339,6 +339,8 @@ export const MessageBubble = memo(function MessageBubble({
     created_at,
     ai_sentiment,
     ai_sources,
+    message_type,
+    media_url,
   } = message
 
   const isInbound = direction === 'inbound'
@@ -448,10 +450,39 @@ export const MessageBubble = memo(function MessageBubble({
             />
           ) : (
             <>
+              {message_type === 'image' && media_url && (
+                <div className="mb-2 rounded-md overflow-hidden bg-white/5 border border-white/10">
+                  <img src={media_url} alt="Imagem recebida" className="max-w-[280px] max-h-[300px] object-cover" />
+                </div>
+              )}
+
+              {message_type === 'video' && media_url && (
+                <div className="mb-2 rounded-md overflow-hidden bg-white/5 border border-white/10">
+                  <video src={media_url} controls className="max-w-[280px] max-h-[300px]" />
+                </div>
+              )}
+
+              {message_type === 'audio' && media_url && (
+                <div className="mb-2">
+                  <audio src={media_url} controls className="h-10 w-[240px]" />
+                </div>
+              )}
+
+              {message_type === 'document' && media_url && (
+                <div className="mb-2">
+                  <a href={media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-[var(--ds-bg-surface)]/50 hover:bg-[var(--ds-bg-hover)] border border-[var(--ds-border-subtle)] transition-colors text-sm text-blue-400">
+                    <span className="text-xl">📄</span>
+                    <span className="truncate flex-1">Abrir Documento</span>
+                  </a>
+                </div>
+              )}
+
               {/* Regular message content with WhatsApp formatting */}
-              <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                <WhatsAppFormattedText text={content} />
-              </p>
+              {content && (
+                <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
+                  <WhatsAppFormattedText text={content} />
+                </p>
+              )}>
 
               {/* AI Sources - inline, minimal */}
               {isAIResponse && ai_sources && ai_sources.length > 0 && isLastInGroup && (
