@@ -482,8 +482,7 @@ export const MessageBubble = memo(function MessageBubble({
                 <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                   <WhatsAppFormattedText text={content} />
                 </p>
-              )}>
-
+              )}
               {/* AI Sources - inline, minimal */}
               {isAIResponse && ai_sources && ai_sources.length > 0 && isLastInGroup && (
                 <Tooltip>
