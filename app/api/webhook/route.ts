@@ -664,6 +664,11 @@ export async function POST(request: NextRequest) {
 
         const statuses = change.value?.statuses || []
 
+        if (statuses.length > 0) {
+          console.log(`[EMERGENCY COOLDOWN] Dropping ${statuses.length} status updates to prevent DB exhaustion.`);
+          continue; // Skip processing statuses entirely
+        }
+
         // =========================================================
         // Message Status Updates (durável + idempotente)
         // - 1) Persistimos o evento em whatsapp_status_events (nunca perde)
