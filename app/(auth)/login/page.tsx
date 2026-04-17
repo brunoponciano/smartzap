@@ -79,15 +79,20 @@ function LoginForm() {
         body: JSON.stringify({ password })
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao fazer login')
+      let data;
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Server returned status ${response.status}: ${text.substring(0, 100)}`);
       }
 
-      // Redirect to original destination or dashboard
-      router.push(redirectTo)
-      router.refresh()
+      if (!response.ok) {
+        throw new Error(data?.error || 'Erro ao fazer login')
+      }
+
+      // Force a hard redirect to ensure cookies are sent and dashboard loads freshly
+      window.location.href = redirectTo
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login')

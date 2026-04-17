@@ -4,7 +4,7 @@ import { CampaignsClientWrapper } from './CampaignsClientWrapper'
 import { CampaignsSkeleton } from '@/components/features/campaigns/CampaignsSkeleton'
 
 // ISR: revalida a cada 60 segundos (campanhas mudam menos que dashboard)
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 /**
  * Componente async que busca dados no servidor e passa para o cliente.

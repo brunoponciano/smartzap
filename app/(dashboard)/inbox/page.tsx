@@ -7,7 +7,7 @@ import { PageLayoutScope } from '@/components/providers/PageLayoutProvider'
 import { Loader2 } from 'lucide-react'
 
 // ISR: revalida a cada 30 segundos (inbox precisa de dados mais frescos)
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 /** Full-bleed layout for inbox - no padding, fills available space */
 const INBOX_LAYOUT = {

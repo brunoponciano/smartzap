@@ -4,7 +4,7 @@ import { DashboardSkeleton } from '@/components/features/dashboard/DashboardSkel
 import { DashboardClientLoader } from './DashboardClientLoader'
 
 // ISR: revalida a cada 30 segundos
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 /**
  * Componente async que busca dados no servidor e passa para o cliente.

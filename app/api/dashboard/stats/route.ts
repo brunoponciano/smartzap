@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 // Allow 60s cache on Vercel Edge - dashboard uses realtime/polling for updates
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
