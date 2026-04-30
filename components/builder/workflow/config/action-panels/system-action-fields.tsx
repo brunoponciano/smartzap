@@ -50,7 +50,7 @@ function WhatsAppMessageFields({
         />
       </div>
       <p className="text-muted-foreground text-xs">
-        Escreva a mensagem que o cliente vai receber. Voce pode usar variaveis usando chaves duplas: {{nome}}.
+        Escreva a mensagem que o cliente vai receber. Voce pode usar variaveis usando chaves duplas: {"{{nome}}"}.
       </p>
     </div>
   );
