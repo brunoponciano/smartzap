@@ -20,6 +20,73 @@ export interface SystemActionFieldsProps {
   disabled: boolean;
 }
 
+// WhatsApp Message fields component
+function WhatsAppMessageFields({
+  config,
+  onUpdateConfig,
+  disabled,
+}: {
+  config: Record<string, unknown>;
+  onUpdateConfig: (key: string, value: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="messageText">Texto da Mensagem</Label>
+      <div className="overflow-hidden rounded-md border">
+        <CodeEditor
+          defaultLanguage="markdown"
+          height="150px"
+          onChange={(value) => onUpdateConfig("messageText", value || "")}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: "off",
+            scrollBeyondLastLine: false,
+            fontSize: 14,
+            readOnly: disabled,
+            wordWrap: "on",
+          }}
+          value={(config?.messageText as string) || ""}
+        />
+      </div>
+      <p className="text-muted-foreground text-xs">
+        Escreva a mensagem que o cliente vai receber. Voce pode usar variaveis usando chaves duplas: {{nome}}.
+      </p>
+    </div>
+  );
+}
+
+// Tag fields component
+function TagFields({
+  config,
+  onUpdateConfig,
+  disabled,
+  mode,
+}: {
+  config: Record<string, unknown>;
+  onUpdateConfig: (key: string, value: string) => void;
+  disabled: boolean;
+  mode: "add" | "remove";
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="tagName">Nome da Tag</Label>
+      <Input
+        disabled={disabled}
+        id="tagName"
+        onChange={(e) => onUpdateConfig("tagName", e.target.value)}
+        placeholder="Ex: cliente_vip"
+        value={(config?.tagName as string) || ""}
+      />
+      <p className="text-muted-foreground text-xs">
+        {mode === "add"
+          ? "Esta tag sera aplicada ao contato atual quando o fluxo passar por aqui."
+          : "Esta tag sera removida do contato atual quando o fluxo passar por aqui."}
+      </p>
+    </div>
+  );
+}
+
 // Database Query fields component
 function DatabaseQueryFields({
   config,
@@ -318,6 +385,40 @@ export function SystemActionFields({
   disabled,
 }: SystemActionFieldsProps) {
   switch (actionType) {
+    case "WhatsApp Message":
+      return (
+        <WhatsAppMessageFields
+          config={config}
+          disabled={disabled}
+          onUpdateConfig={onUpdateConfig}
+        />
+      );
+    case "WhatsApp Template":
+      return (
+        <div className="rounded-lg border border-muted bg-muted/30 p-4">
+          <p className="text-sm text-muted-foreground">
+            O seletor de Templates (Aprovados pela Meta) sera carregado aqui em breve!
+          </p>
+        </div>
+      );
+    case "Add Tag":
+      return (
+        <TagFields
+          config={config}
+          disabled={disabled}
+          onUpdateConfig={onUpdateConfig}
+          mode="add"
+        />
+      );
+    case "Remove Tag":
+      return (
+        <TagFields
+          config={config}
+          disabled={disabled}
+          onUpdateConfig={onUpdateConfig}
+          mode="remove"
+        />
+      );
     case "HTTP Request":
       return (
         <HttpRequestFields

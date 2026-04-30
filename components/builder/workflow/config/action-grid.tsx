@@ -42,40 +42,46 @@ type ActionType = {
 // System actions that don't have plugins
 const SYSTEM_ACTIONS: ActionType[] = [
   {
-    id: "HTTP Request",
-    label: "Requisicao HTTP",
-    description: "Fazer requisicao HTTP para qualquer API",
-    category: "Sistema",
+    id: "WhatsApp Message",
+    label: "Enviar Mensagem",
+    description: "Enviar mensagem de texto livre no WhatsApp",
+    category: "WhatsApp",
   },
   {
-    id: "Database Query",
-    label: "Consulta ao banco",
-    description: "Consultar seu banco de dados",
-    category: "Sistema",
+    id: "WhatsApp Template",
+    label: "Enviar Template",
+    description: "Enviar um template aprovado da Meta",
+    category: "WhatsApp",
+  },
+  {
+    id: "Add Tag",
+    label: "Adicionar Tag",
+    description: "Aplicar uma tag ao contato",
+    category: "Contatos",
+  },
+  {
+    id: "Remove Tag",
+    label: "Remover Tag",
+    description: "Remover uma tag do contato",
+    category: "Contatos",
   },
   {
     id: "Condition",
     label: "Condicao",
     description: "Desviar fluxo com base em condicao",
-    category: "Sistema",
+    category: "Lógica",
   },
   {
     id: "Delay",
-    label: "Delay",
-    description: "Aguardar por um tempo",
-    category: "Sistema",
+    label: "Aguardar (Delay)",
+    description: "Pausar a jornada por um tempo",
+    category: "Lógica",
   },
   {
-    id: "Set Variable",
-    label: "Definir variável",
-    description: "Guardar um valor para etapas futuras",
-    category: "Sistema",
-  },
-  {
-    id: "Get Variable",
-    label: "Obter variável",
-    description: "Ler uma variável armazenada",
-    category: "Sistema",
+    id: "HTTP Request",
+    label: "Requisicao HTTP",
+    description: "Fazer integracoes com outras APIs",
+    category: "Avançado",
   },
 ];
 

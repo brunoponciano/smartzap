@@ -59,9 +59,13 @@ export interface ActionConfigProps {
 
 // System actions that don't have plugins
 const SYSTEM_ACTIONS: Array<{ id: string; label: string }> = [
-  { id: "HTTP Request", label: "Requisicao HTTP" },
-  { id: "Database Query", label: "Consulta ao banco" },
+  { id: "WhatsApp Message", label: "Enviar Mensagem" },
+  { id: "WhatsApp Template", label: "Enviar Template" },
+  { id: "Add Tag", label: "Adicionar Tag" },
+  { id: "Remove Tag", label: "Remover Tag" },
   { id: "Condition", label: "Condicao" },
+  { id: "Delay", label: "Aguardar (Delay)" },
+  { id: "HTTP Request", label: "Requisicao HTTP" },
 ];
 
 const SYSTEM_ACTION_IDS = SYSTEM_ACTIONS.map((a) => a.id);
