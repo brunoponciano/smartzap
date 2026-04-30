@@ -1009,18 +1009,38 @@ export async function POST(request: NextRequest) {
 
                 // Aplica tag ao contato se configurada
                 if (matchedReply.tag) {
-                  const { data: contact } = await supabaseAdmin
+                  const normalizedForTag = normalizePhoneNumber(from)
+                  const variants = new Set<string>([from, `+${from}`, normalizedForTag])
+                  
+                  const clean = from.replace(/\D/g, '')
+                  if (clean.startsWith('55') && clean.length >= 12 && clean.length <= 13) {
+                    const ddd = clean.substring(2, 4)
+                    const num = clean.substring(4)
+                    if (num.length === 8) {
+                      variants.add(`55${ddd}9${num}`)
+                      variants.add(`+55${ddd}9${num}`)
+                    } else if (num.length === 9 && num.startsWith('9')) {
+                      const without9 = num.substring(1)
+                      variants.add(`55${ddd}${without9}`)
+                      variants.add(`+55${ddd}${without9}`)
+                    }
+                  }
+                  
+                  const orCondition = Array.from(variants).map((p) => `phone.eq.${p}`).join(',')
+
+                  const { data: contacts } = await supabaseAdmin
                     .from('contacts')
                     .select('id')
-                    .or(`phone.eq.${from},phone.eq.+${from}`)
-                    .maybeSingle()
-                  if (contact?.id) {
+                    .or(orCondition)
+
+                  if (contacts && contacts.length > 0) {
+                    const ids = contacts.map((c) => c.id)
                     await supabaseAdmin.rpc('bulk_update_contact_tags', {
-                      p_ids: [contact.id],
+                      p_ids: ids,
                       p_tags_to_add: [matchedReply.tag],
                       p_tags_to_remove: [],
                     })
-                    console.log(`🏷️ Tag "${matchedReply.tag}" aplicada ao contato ${from}`)
+                    console.log(`🏷️ Tag "${matchedReply.tag}" aplicada aos contatos ${ids.join(', ')} (from: ${from})`)
                   }
                 }
               }
