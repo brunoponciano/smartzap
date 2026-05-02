@@ -512,16 +512,20 @@ async function executeWorkflowDirect(workflowId: string, from: string): Promise<
 
   for (const node of actionNodes) {
     const actionType = node?.data?.config?.actionType as string | undefined
+    const nodeConfig = node?.data?.config || {}
+    console.log(`[Workflow] Nó: actionType="${actionType}" config keys=${Object.keys(nodeConfig).join(',')} messageText="${nodeConfig.messageText}" message="${nodeConfig.message}"`)
     try {
       if (actionType === 'WhatsApp Message') {
         const messageText = String(
-          node?.data?.config?.messageText ||
-          node?.data?.config?.message ||
+          nodeConfig.messageText ||
+          nodeConfig.message ||
           ''
         ).trim()
         if (messageText) {
-          console.log(`[Workflow] Enviando mensagem para ${from}: ${messageText.substring(0, 50)}`)
+          console.log(`[Workflow] Enviando mensagem para ${from}: ${messageText.substring(0, 80)}`)
           await sendWhatsAppMessage({ to: from, type: 'text', text: messageText })
+        } else {
+          console.warn(`[Workflow] messageText está vazio! config=`, JSON.stringify(nodeConfig).substring(0, 200))
         }
       } else if (actionType === 'Add Tag' || actionType === 'Remove Tag') {
         const tagName = String(node?.data?.config?.tagName || '').trim()
