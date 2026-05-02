@@ -16,6 +16,7 @@ export type WhatsAppMessageInput = StepInput & {
 
 export type ManageTagInput = StepInput & {
   tagName?: string;
+  actionType?: string;
   triggerData?: Record<string, unknown>;
 };
 
@@ -79,7 +80,7 @@ export async function manageTagStep(
       return { success: false, error: "O nome da Tag está vazio." };
     }
 
-    const isRemove = input._context?.nodeName === "Remove Tag" || input._context?.nodeType === "Remove Tag" || input.actionType === "Remove Tag";
+    const isRemove = input._context?.nodeName === "Remove Tag" || input.actionType === "Remove Tag";
     
     try {
       const supabaseAdmin = getSupabaseAdmin();
