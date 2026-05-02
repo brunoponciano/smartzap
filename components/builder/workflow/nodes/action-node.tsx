@@ -1,6 +1,7 @@
 "use client";
 
 import type { NodeProps } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { useAtomValue } from "jotai";
 import {
   AlertTriangle,
@@ -344,6 +345,57 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   const aiModel = getAiModel();
   const isDisabled = data.enabled === false;
+
+  // Special rendering for Condition node: two output handles
+  if (actionType === "Condition") {
+    return (
+      <Node
+        className={cn(
+          "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
+          selected && "border-primary",
+          isDisabled && "opacity-50"
+        )}
+        data-testid={`action-node-${id}`}
+        handles={{ target: true, source: false }}
+        status={status}
+      >
+        {/* Two labeled output handles */}
+        <Handle
+          id="true"
+          position={Position.Right}
+          style={{ top: "35%", right: -8 }}
+          type="source"
+        />
+        <span
+          className="absolute text-[9px] font-semibold text-green-400"
+          style={{ right: 8, top: "26%" }}
+        >
+          ✓ Sim
+        </span>
+        <Handle
+          id="false"
+          position={Position.Right}
+          style={{ top: "65%", right: -8 }}
+          type="source"
+        />
+        <span
+          className="absolute text-[9px] font-semibold text-red-400"
+          style={{ right: 8, top: "67%" }}
+        >
+          ✗ Não
+        </span>
+
+        <StatusBadge status={status} />
+        <div className="flex flex-col items-center justify-center gap-3 p-6">
+          <GitBranch className="size-12 text-pink-300" strokeWidth={1.5} />
+          <div className="flex flex-col items-center gap-1 text-center">
+            <NodeTitle className="text-base">{displayTitle}</NodeTitle>
+            <NodeDescription className="text-xs">Condição</NodeDescription>
+          </div>
+        </div>
+      </Node>
+    );
+  }
 
   return (
     <Node

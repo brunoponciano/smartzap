@@ -241,23 +241,103 @@ function ConditionFields({
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
 }) {
+  const conditionField = (config?.conditionField as string) || "message_text";
+  const conditionOperator = (config?.conditionOperator as string) || "contains";
+
+  const operatorsByField: Record<string, { value: string; label: string }[]> = {
+    message_text: [
+      { value: "contains", label: "contém" },
+      { value: "equals", label: "é igual a" },
+      { value: "starts_with", label: "começa com" },
+      { value: "not_contains", label: "não contém" },
+    ],
+    contact_tag: [
+      { value: "has_tag", label: "tem a tag" },
+      { value: "not_has_tag", label: "não tem a tag" },
+    ],
+    contact_name: [
+      { value: "contains", label: "contém" },
+      { value: "equals", label: "é igual a" },
+    ],
+  };
+
+  const operators = operatorsByField[conditionField] || operatorsByField.message_text;
+
   return (
-    <div className="space-y-2">
-      <Label htmlFor="condition">Expressao de condicao</Label>
-      <TemplateBadgeInput
-        disabled={disabled}
-        id="condition"
-        onChange={(value) => onUpdateConfig("condition", value)}
-        placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
-        value={(config?.condition as string) || ""}
-      />
-      <p className="text-muted-foreground text-xs">
-        Enter a JavaScript expression that evaluates to true or false. You can
-        use @ to reference previous node outputs.
-      </p>
+    <div className="space-y-3">
+      {/* Instrução */}
+      <div className="rounded-md border border-dashed border-pink-400/50 bg-pink-500/10 p-3">
+        <p className="text-xs text-pink-300">
+          Configure a condição. A saída <strong>Sim ✓</strong> é ativada quando verdadeiro, <strong>Não ✗</strong> quando falso.
+        </p>
+      </div>
+
+      {/* Campo */}
+      <div className="space-y-1">
+        <Label htmlFor="conditionField">Verificar</Label>
+        <Select
+          disabled={disabled}
+          onValueChange={(value) => {
+            onUpdateConfig("conditionField", value);
+            // Reset operator when field changes
+            const firstOp = operatorsByField[value]?.[0]?.value || "contains";
+            onUpdateConfig("conditionOperator", firstOp);
+          }}
+          value={conditionField}
+        >
+          <SelectTrigger id="conditionField">
+            <SelectValue placeholder="Selecione o campo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="message_text">Texto da mensagem recebida</SelectItem>
+            <SelectItem value="contact_tag">Tag do contato</SelectItem>
+            <SelectItem value="contact_name">Nome do contato</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Operador */}
+      <div className="space-y-1">
+        <Label htmlFor="conditionOperator">Condição</Label>
+        <Select
+          disabled={disabled}
+          onValueChange={(value) => onUpdateConfig("conditionOperator", value)}
+          value={conditionOperator}
+        >
+          <SelectTrigger id="conditionOperator">
+            <SelectValue placeholder="Selecione a condição" />
+          </SelectTrigger>
+          <SelectContent>
+            {operators.map((op) => (
+              <SelectItem key={op.value} value={op.value}>
+                {op.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Valor */}
+      <div className="space-y-1">
+        <Label htmlFor="conditionValue">Valor</Label>
+        <Input
+          disabled={disabled}
+          id="conditionValue"
+          onChange={(e) => onUpdateConfig("conditionValue", e.target.value)}
+          placeholder={
+            conditionField === "contact_tag"
+              ? "ex: lead-quente"
+              : conditionField === "message_text"
+              ? "ex: sim, quero, preço"
+              : "ex: João"
+          }
+          value={(config?.conditionValue as string) || ""}
+        />
+      </div>
     </div>
   );
 }
+
 
 function DelayFields({
   config,

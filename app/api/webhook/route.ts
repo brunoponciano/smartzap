@@ -480,100 +480,192 @@ function findMatchingWorkflow(
   return null
 }
 
+// ── Avalia uma condição com base nos dados do contato e mensagem ───────────
+function evaluateCondition(
+  config: Record<string, unknown>,
+  triggerMessage: string,
+  contact: Record<string, unknown> | null
+): boolean {
+  const field = String(config.conditionField || 'message_text')
+  const operator = String(config.conditionOperator || 'contains')
+  const value = String(config.conditionValue || '').trim().toLowerCase()
+
+  switch (field) {
+    case 'message_text': {
+      const msg = triggerMessage.toLowerCase()
+      if (operator === 'contains') return msg.includes(value)
+      if (operator === 'equals') return msg === value
+      if (operator === 'starts_with') return msg.startsWith(value)
+      if (operator === 'not_contains') return !msg.includes(value)
+      return false
+    }
+    case 'contact_tag': {
+      const tags = ((contact?.tags as any[]) || []).map((t: any) =>
+        String(typeof t === 'object' ? t.name || t : t).toLowerCase()
+      )
+      if (operator === 'has_tag') return tags.some(t => t.includes(value))
+      if (operator === 'not_has_tag') return !tags.some(t => t.includes(value))
+      return false
+    }
+    case 'contact_name': {
+      const name = String(contact?.name || '').toLowerCase()
+      if (operator === 'contains') return name.includes(value)
+      if (operator === 'equals') return name === value
+      return false
+    }
+    default:
+      return false
+  }
+}
+
 /**
  * Executa o workflow diretamente, sem QStash.
- * Percorre os nós de ação e executa cada um sequencialmente.
+ * Faz traversal do grafo seguindo as arestas, avaliando condições no caminho.
  */
-async function executeWorkflowDirect(workflowId: string, from: string): Promise<void> {
+async function executeWorkflowDirect(workflowId: string, from: string, triggerMessage = ''): Promise<void> {
   const admin = getSupabaseAdmin()
   if (!admin) {
     console.error('[Workflow] supabaseAdmin não configurado')
     return
   }
 
-  // Busca a versão publicada mais recente
+  // Busca a versão publicada mais recente (nodes + edges)
   const { data: versions } = await admin
     .from('workflow_versions')
-    .select('nodes')
+    .select('nodes, edges')
     .eq('workflow_id', workflowId)
     .eq('status', 'published')
     .order('published_at', { ascending: false })
     .limit(1)
 
   const nodes = versions?.[0]?.nodes as any[] | undefined
+  const edges = versions?.[0]?.edges as any[] | undefined
+
   if (!nodes || nodes.length === 0) {
-    console.error(`[Workflow] Nenhuma versão publicada encontrada para workflow ${workflowId}`)
+    console.error(`[Workflow] Nenhuma versão publicada para workflow ${workflowId}`)
     return
   }
 
-  // Pega apenas nós de ação (exclui trigger)
-  const actionNodes = nodes.filter((n: any) => n?.data?.type === 'action')
-  console.log(`[Workflow] Executando ${actionNodes.length} ações para telefone ${from}`)
+  // Constrói mapa de adjacência: nodeId -> Map<sourceHandle, targetNodeId>
+  // sourceHandle é "true"/"false" para condição, null/"default" para outros
+  const edgeMap = new Map<string, Map<string, string>>()
+  for (const edge of (edges || [])) {
+    if (!edgeMap.has(edge.source)) edgeMap.set(edge.source, new Map())
+    edgeMap.get(edge.source)!.set(edge.sourceHandle ?? 'default', edge.target)
+  }
+  const nodeMap = new Map(nodes.map((n: any) => [n.id, n]))
 
-  for (const node of actionNodes) {
-    const actionType = node?.data?.config?.actionType as string | undefined
-    const nodeConfig = node?.data?.config || {}
-    console.log(`[Workflow] Nó: actionType="${actionType}" config keys=${Object.keys(nodeConfig).join(',')} messageText="${nodeConfig.messageText}" message="${nodeConfig.message}"`)
-    try {
+  // Busca dados do contato para avaliar condições
+  const phoneVariants = [from, `+${from}`, from.replace(/^55/, '')]
+  const { data: matchedContacts } = await admin
+    .from('contacts')
+    .select('id, name, tags, custom_fields')
+    .in('phone', phoneVariants)
+    .limit(1)
+  const contact = matchedContacts?.[0] || null
+
+  // Encontra o nó de trigger
+  const triggerNode = nodes.find((n: any) => n?.data?.type === 'trigger')
+  if (!triggerNode) {
+    console.error('[Workflow] Nó trigger não encontrado')
+    return
+  }
+
+  // Traversal iterativo seguindo as arestas
+  let currentNodeId: string | null = triggerNode.id
+  let depth = 0
+  const MAX_DEPTH = 30 // proteção contra loops
+
+  console.log(`[Workflow] Iniciando traversal do grafo a partir do trigger`)
+
+  while (currentNodeId && depth < MAX_DEPTH) {
+    depth++
+    const node = nodeMap.get(currentNodeId)
+    if (!node) break
+
+    const nodeType = node?.data?.type
+    const config = node?.data?.config || {}
+    const actionType = config?.actionType as string | undefined
+
+    console.log(`[Workflow] Processando nó: id=${currentNodeId} type=${nodeType} actionType=${actionType}`)
+
+    // Trigger: apenas avança para o próximo nó
+    if (nodeType === 'trigger') {
+      const nextEdges = edgeMap.get(currentNodeId)
+      currentNodeId = nextEdges?.get('default') ?? nextEdges?.values().next().value ?? null
+      continue
+    }
+
+    // Nó de ação
+    if (nodeType === 'action') {
+      // Condição (if/else) — avalia e segue o branch correto
+      if (actionType === 'Condition') {
+        const result = evaluateCondition(config, triggerMessage, contact)
+        const branch = result ? 'true' : 'false'
+        console.log(`[Workflow] Condição avaliada: ${result} → seguindo branch "${branch}"`)
+        const nextEdges = edgeMap.get(currentNodeId)
+        currentNodeId = nextEdges?.get(branch) ?? null
+        continue
+      }
+
+      // WhatsApp Message
       if (actionType === 'WhatsApp Message' || actionType === 'whatsapp/send-message') {
-        const messageText = String(
-          nodeConfig.messageText ||
-          nodeConfig.message ||
-          ''
-        ).trim()
+        const messageText = String(config.messageText || config.message || '').trim()
         if (messageText) {
           console.log(`[Workflow] Enviando mensagem para ${from}: ${messageText.substring(0, 80)}`)
-          await sendWhatsAppMessage({ to: from, type: 'text', text: messageText })
+          try {
+            await sendWhatsAppMessage({ to: from, type: 'text', text: messageText })
+          } catch (err) {
+            console.error('[Workflow] Erro ao enviar mensagem:', err)
+          }
         } else {
-          console.warn(`[Workflow] messageText está vazio! config=`, JSON.stringify(nodeConfig).substring(0, 200))
+          console.warn('[Workflow] messageText vazio no nó WhatsApp Message')
         }
-      } else if (
+      }
+
+      // Add/Remove Tag
+      else if (
         actionType === 'Add Tag' ||
         actionType === 'Remove Tag' ||
         actionType === 'manage-tag'
       ) {
-        // Suporta ambos os formatos de config: tagName (sistema) ou tag (plugin)
-        const tagName = String(
-          nodeConfig.tagName || nodeConfig.tag || ''
-        ).trim()
-        // Para plugin "manage-tag": actionType determina adicionar ou remover via config.action
+        const tagName = String(config.tagName || config.tag || '').trim()
         const isRemove =
           actionType === 'Remove Tag' ||
-          (actionType === 'manage-tag' && String(nodeConfig.action || '').toLowerCase().includes('remov'))
+          (actionType === 'manage-tag' && String(config.action || '').toLowerCase().includes('remov'))
 
-        if (tagName) {
-          // Busca o contato pelo telefone em múltiplos formatos
-          const phoneVariants = [from, `+${from}`, from.replace(/^55/, '')]
-          const { data: matchedContacts } = await admin
-            .from('contacts')
-            .select('id')
-            .in('phone', phoneVariants)
-            .limit(1)
-          const contactId = matchedContacts?.[0]?.id
-
-          if (contactId) {
-            const tagsToAdd = isRemove ? [] : [tagName]
-            const tagsToRemove = isRemove ? [tagName] : []
-            const { error } = await admin.rpc('bulk_update_contact_tags', {
-              p_ids: [contactId],
-              p_tags_to_add: tagsToAdd,
-              p_tags_to_remove: tagsToRemove,
-            })
-            if (error) {
-              console.error(`[Workflow] Erro ao aplicar tag "${tagName}":`, error)
-            } else {
-              console.log(`[Workflow] Tag "${tagName}" ${isRemove ? 'removida de' : 'aplicada ao'} contato ${contactId}`)
-            }
+        if (tagName && contact?.id) {
+          const tagsToAdd = isRemove ? [] : [tagName]
+          const tagsToRemove = isRemove ? [tagName] : []
+          const { error } = await admin.rpc('bulk_update_contact_tags', {
+            p_ids: [contact.id],
+            p_tags_to_add: tagsToAdd,
+            p_tags_to_remove: tagsToRemove,
+          })
+          if (error) {
+            console.error(`[Workflow] Erro ao aplicar tag "${tagName}":`, error)
           } else {
-            console.warn(`[Workflow] Contato não encontrado para telefone ${from}`)
+            console.log(`[Workflow] Tag "${tagName}" ${isRemove ? 'removida de' : 'aplicada ao'} contato`)
           }
+        } else if (!contact?.id) {
+          console.warn(`[Workflow] Contato não encontrado para telefone ${from}`)
         }
       }
-    } catch (err) {
-      console.error(`[Workflow] Erro ao executar ação ${actionType}:`, err)
+
+      // Avança para o próximo nó
+      const nextEdges = edgeMap.get(currentNodeId)
+      currentNodeId = nextEdges?.get('default') ?? nextEdges?.values().next().value ?? null
+      continue
     }
+
+    // Tipo desconhecido — avança
+    const nextEdges = edgeMap.get(currentNodeId)
+    currentNodeId = nextEdges?.get('default') ?? nextEdges?.values().next().value ?? null
   }
+
+  console.log(`[Workflow] Traversal concluído em ${depth} etapas`)
 }
+
 
 function isMissingColumnError(e: unknown, columnName: string): boolean {
   const msg = e instanceof Error ? e.message : String((e as any)?.message || e || '')
@@ -1199,7 +1291,7 @@ export async function POST(request: NextRequest) {
           if (targetWorkflowId && text && from) {
             try {
               console.log(`🚀 [Workflow] Disparando automação: ${targetWorkflowId} → ${from}`)
-              await executeWorkflowDirect(targetWorkflowId, from)
+              await executeWorkflowDirect(targetWorkflowId, from, text || '')
             } catch (e) {
               console.error('[Webhook] Erro ao executar workflow:', e)
             }
