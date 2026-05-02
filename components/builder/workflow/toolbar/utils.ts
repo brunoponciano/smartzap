@@ -7,7 +7,6 @@ import type { WorkflowNode } from "@/lib/builder/workflow-store";
 import {
   findActionById,
   flattenConfigFields,
-  getIntegrationLabels,
 } from "@/lib/builder/plugins";
 import type {
   MissingIntegrationInfo,
@@ -17,15 +16,7 @@ import type {
 } from "./types";
 import { builderApiService } from "@/services/builderApiService";
 
-// Built-in actions that require integrations but aren't in the plugin registry
-const BUILTIN_ACTION_INTEGRATIONS: Record<string, IntegrationType> = {
-  "Database Query": "database",
-};
 
-// Labels for built-in integration types that don't have plugins
-const BUILTIN_INTEGRATION_LABELS: Record<string, string> = {
-  database: "Database",
-};
 
 // Helper function to update nodes status
 export function updateNodesStatus(
