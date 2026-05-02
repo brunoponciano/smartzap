@@ -214,71 +214,13 @@ export function getMissingRequiredFields(
     .filter((result): result is MissingRequiredFieldInfo => result !== null);
 }
 
-// Get missing integrations for workflow nodes
-// Uses the plugin registry to determine which integrations are required
-// Also handles built-in actions that aren't in the plugin registry
 export function getMissingIntegrations(
   nodes: WorkflowNode[],
   userIntegrations: Array<{ id: string; type: IntegrationType }>
 ): MissingIntegrationInfo[] {
-  const userIntegrationTypes = new Set(userIntegrations.map((i) => i.type));
-  const userIntegrationIds = new Set(userIntegrations.map((i) => i.id));
-  const missingByType = new Map<IntegrationType, string[]>();
-  const integrationLabels = getIntegrationLabels();
-
-  for (const node of nodes) {
-    // Skip disabled nodes
-    if (node.data.enabled === false) {
-      continue;
-    }
-
-    const actionType = node.data.config?.actionType as string | undefined;
-    if (!actionType) {
-      continue;
-    }
-
-    // Look up the integration type from the plugin registry first
-    const action = findActionById(actionType);
-    // Fall back to built-in action integrations for actions not in the registry
-    const requiredIntegrationType =
-      action?.integration || BUILTIN_ACTION_INTEGRATIONS[actionType];
-
-    if (!requiredIntegrationType) {
-      continue;
-    }
-
-    // Check if this node has a valid integrationId configured
-    // The integration must exist (not just be configured)
-    const configuredIntegrationId = node.data.config?.integrationId as
-      | string
-      | undefined;
-    const hasValidIntegration =
-      configuredIntegrationId &&
-      userIntegrationIds.has(configuredIntegrationId);
-    if (hasValidIntegration) {
-      continue;
-    }
-
-    // Check if user has any integration of this type
-    if (!userIntegrationTypes.has(requiredIntegrationType)) {
-      const existing = missingByType.get(requiredIntegrationType) || [];
-      // Use human-readable label from registry if no custom label
-      const actionInfo = findActionById(actionType);
-      existing.push(node.data.label || actionInfo?.label || actionType);
-      missingByType.set(requiredIntegrationType, existing);
-    }
-  }
-
-  return Array.from(missingByType.entries()).map(
-    ([integrationType, nodeNames]) => ({
-      integrationType,
-      integrationLabel:
-        integrationLabels[integrationType] ||
-        BUILTIN_INTEGRATION_LABELS[integrationType] ||
-        integrationType,
-      nodeNames,
-    })
-  );
+  // No SmartZap, a integração com o WhatsApp é nativa e global,
+  // então não precisamos cobrar a configuração de "Conexão" individualmente no builder.
+  return [];
 }
 
 // Execute test workflow function

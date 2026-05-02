@@ -10,6 +10,7 @@ type ActionResult =
 
 export type WhatsAppMessageInput = StepInput & {
   messageText?: string;
+  message?: string;
   triggerData?: Record<string, unknown>;
 };
 
@@ -37,7 +38,7 @@ export async function whatsAppMessageStep(
       return { success: false, error: "Destinatario não encontrado (não veio do WhatsApp)." };
     }
 
-    const message = String(input.messageText || "").trim();
+    const message = String(input.messageText || input.message || "").trim();
     if (!message) {
       return { success: false, error: "A mensagem está vazia." };
     }

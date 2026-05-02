@@ -44,6 +44,11 @@ const SYSTEM_ACTIONS: Record<string, StepImporter> = {
     importer: () => import("./steps/whatsapp-actions") as Promise<any>,
     stepFunction: "whatsAppMessageStep",
   },
+  "whatsapp/send-message": {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/whatsapp-actions") as Promise<any>,
+    stepFunction: "whatsAppMessageStep",
+  },
   "Add Tag": {
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
     importer: () => import("./steps/whatsapp-actions") as Promise<any>,
