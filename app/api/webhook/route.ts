@@ -473,6 +473,75 @@ function findMatchingWorkflow(
   return null
 }
 
+/**
+ * Executa o workflow diretamente, sem QStash.
+ * Percorre os nós de ação e executa cada um sequencialmente.
+ */
+async function executeWorkflowDirect(workflowId: string, from: string): Promise<void> {
+  const admin = getSupabaseAdmin()
+  if (!admin) {
+    console.error('[Workflow] supabaseAdmin não configurado')
+    return
+  }
+
+  // Busca a versão publicada mais recente
+  const { data: versions } = await admin
+    .from('workflow_versions')
+    .select('nodes')
+    .eq('workflow_id', workflowId)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(1)
+
+  const nodes = versions?.[0]?.nodes as any[] | undefined
+  if (!nodes || nodes.length === 0) {
+    console.error(`[Workflow] Nenhuma versão publicada encontrada para workflow ${workflowId}`)
+    return
+  }
+
+  // Pega apenas nós de ação (exclui trigger)
+  const actionNodes = nodes.filter((n: any) => n?.data?.type === 'action')
+  console.log(`[Workflow] Executando ${actionNodes.length} ações para telefone ${from}`)
+
+  for (const node of actionNodes) {
+    const actionType = node?.data?.config?.actionType as string | undefined
+    try {
+      if (actionType === 'WhatsApp Message') {
+        const messageText = String(
+          node?.data?.config?.messageText ||
+          node?.data?.config?.message ||
+          ''
+        ).trim()
+        if (messageText) {
+          console.log(`[Workflow] Enviando mensagem para ${from}: ${messageText.substring(0, 50)}`)
+          await sendWhatsAppMessage({ to: from, type: 'text', text: messageText })
+        }
+      } else if (actionType === 'Add Tag' || actionType === 'Remove Tag') {
+        const tagName = String(node?.data?.config?.tagName || '').trim()
+        if (tagName) {
+          const { data: contacts } = await admin
+            .from('contacts')
+            .select('id')
+            .eq('phone', from)
+            .limit(1)
+          const contactId = contacts?.[0]?.id
+          if (contactId) {
+            const tagsToAdd = actionType === 'Add Tag' ? [tagName] : []
+            const tagsToRemove = actionType === 'Remove Tag' ? [tagName] : []
+            await admin.rpc('apply_auto_reply_tags', {
+              p_contact_ids: [contactId],
+              p_tags_to_add: tagsToAdd,
+              p_tags_to_remove: tagsToRemove,
+            })
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[Workflow] Erro ao executar ação ${actionType}:`, err)
+    }
+  }
+}
+
 function isMissingColumnError(e: unknown, columnName: string): boolean {
   const msg = e instanceof Error ? e.message : String((e as any)?.message || e || '')
   return msg.toLowerCase().includes('column') && msg.toLowerCase().includes(columnName.toLowerCase())
@@ -1098,36 +1167,10 @@ export async function POST(request: NextRequest) {
 
           if (targetWorkflowId && text && from && isSandboxTest) {
             try {
-              const companyId = await getCompanyId(supabaseAdmin)
-              await ensureWorkflowRecord(supabaseAdmin, targetWorkflowId, companyId)
-
-              // Usa QStash Client para ter assinatura válida (evita SignatureError)
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-                || (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
-                || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`)
-                || request.nextUrl.origin
-
-              const workflowClient = new WorkflowClient({ token: process.env.QSTASH_TOKEN! })
-
-              // Headers para bypass de proteção Vercel se necessário
-              const headers: Record<string, string> = {}
-              const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
-              if (bypassSecret) {
-                headers['x-vercel-protection-bypass'] = bypassSecret
-              }
-
-              console.log(`🚀 [MODO FANTASMA] Gatilho secreto ativado! Iniciando Workflow: ${targetWorkflowId}`)
-              
-              await workflowClient.trigger({
-                url: `${baseUrl}/api/builder/workflow/${targetWorkflowId}/execute`,
-                body: {
-                  workflowId: targetWorkflowId,
-                  input: { from, to: from, message: text },
-                },
-                headers: Object.keys(headers).length > 0 ? headers : undefined,
-              })
+              console.log(`🚀 [MODO FANTASMA] Gatilho secreto ativado! Workflow: ${targetWorkflowId} → ${from}`)
+              await executeWorkflowDirect(targetWorkflowId, from)
             } catch (e) {
-              console.error('[Webhook] Failed to trigger builder workflow:', e)
+              console.error('[Webhook] Failed to execute workflow directly:', e)
             }
           }
 
