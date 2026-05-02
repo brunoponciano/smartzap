@@ -465,11 +465,18 @@ function findMatchingWorkflow(
 ): string | null {
   const normalizedMessage = normalizeInboundText(message)
   if (!normalizedMessage) return null
+  console.log(`[Workflow Debug] Buscando match para: "${normalizedMessage}" entre ${workflows.length} workflow(s)`)
   for (const workflow of workflows) {
-    if (workflow.keywords.some((keyword) => keyword === normalizedMessage)) {
+    // Verifica tanto match exato quanto contains (para maior flexibilidade)
+    const matched = workflow.keywords.some(
+      (keyword) => keyword === normalizedMessage || normalizedMessage.includes(keyword)
+    )
+    if (matched) {
+      console.log(`[Workflow Debug] Match encontrado! Workflow: ${workflow.workflowId}`)
       return workflow.workflowId
     }
   }
+  console.log(`[Workflow Debug] Nenhum match encontrado`)
   return null
 }
 
@@ -656,6 +663,8 @@ export async function POST(request: NextRequest) {
   const keywordWorkflows = defaultWorkflowId
     ? allKeywordWorkflows.filter((w) => w.workflowId !== defaultWorkflowId)
     : allKeywordWorkflows
+
+  console.log(`[Workflow Debug] Workflows publicados com keywords: ${keywordWorkflows.length}`, keywordWorkflows.map(w => ({ id: w.workflowId, keywords: w.keywords })))
 
   try {
     const entries = body.entry || []
@@ -1164,6 +1173,8 @@ export async function POST(request: NextRequest) {
           // você (o testador) mandar a palavra secreta junto com a mensagem.
           const SANDBOX_SECRET = '#TESTE'
           const isSandboxTest = text?.toUpperCase().includes(SANDBOX_SECRET)
+
+          console.log(`[Workflow Debug] matchedWorkflowId=${matchedWorkflowId} defaultWorkflowId=${defaultWorkflowId} targetWorkflowId=${targetWorkflowId} isSandboxTest=${isSandboxTest} text="${text}" from=${from}`)
 
           if (targetWorkflowId && text && from && isSandboxTest) {
             try {
