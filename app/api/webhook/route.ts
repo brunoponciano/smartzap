@@ -527,23 +527,45 @@ async function executeWorkflowDirect(workflowId: string, from: string): Promise<
         } else {
           console.warn(`[Workflow] messageText está vazio! config=`, JSON.stringify(nodeConfig).substring(0, 200))
         }
-      } else if (actionType === 'Add Tag' || actionType === 'Remove Tag') {
-        const tagName = String(node?.data?.config?.tagName || '').trim()
+      } else if (
+        actionType === 'Add Tag' ||
+        actionType === 'Remove Tag' ||
+        actionType === 'manage-tag'
+      ) {
+        // Suporta ambos os formatos de config: tagName (sistema) ou tag (plugin)
+        const tagName = String(
+          nodeConfig.tagName || nodeConfig.tag || ''
+        ).trim()
+        // Para plugin "manage-tag": actionType determina adicionar ou remover via config.action
+        const isRemove =
+          actionType === 'Remove Tag' ||
+          (actionType === 'manage-tag' && String(nodeConfig.action || '').toLowerCase().includes('remov'))
+
         if (tagName) {
-          const { data: contacts } = await admin
+          // Busca o contato pelo telefone em múltiplos formatos
+          const phoneVariants = [from, `+${from}`, from.replace(/^55/, '')]
+          const { data: matchedContacts } = await admin
             .from('contacts')
             .select('id')
-            .eq('phone', from)
+            .in('phone', phoneVariants)
             .limit(1)
-          const contactId = contacts?.[0]?.id
+          const contactId = matchedContacts?.[0]?.id
+
           if (contactId) {
-            const tagsToAdd = actionType === 'Add Tag' ? [tagName] : []
-            const tagsToRemove = actionType === 'Remove Tag' ? [tagName] : []
-            await admin.rpc('apply_auto_reply_tags', {
-              p_contact_ids: [contactId],
+            const tagsToAdd = isRemove ? [] : [tagName]
+            const tagsToRemove = isRemove ? [tagName] : []
+            const { error } = await admin.rpc('bulk_update_contact_tags', {
+              p_ids: [contactId],
               p_tags_to_add: tagsToAdd,
               p_tags_to_remove: tagsToRemove,
             })
+            if (error) {
+              console.error(`[Workflow] Erro ao aplicar tag "${tagName}":`, error)
+            } else {
+              console.log(`[Workflow] Tag "${tagName}" ${isRemove ? 'removida de' : 'aplicada ao'} contato ${contactId}`)
+            }
+          } else {
+            console.warn(`[Workflow] Contato não encontrado para telefone ${from}`)
           }
         }
       }
