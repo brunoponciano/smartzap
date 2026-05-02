@@ -110,28 +110,13 @@ export function useWorkflowHandlers({
       | string
       | undefined;
 
-    if (triggerType === "Manual") {
-      const to = window.prompt("Telefone do destinatario (E.164)", "");
+    if (triggerType === "Manual" || triggerType === "Keywords" || triggerType === "Palavras-chave" || triggerType === "Webhook") {
+      const to = window.prompt("📱 Telefone de TESTE (formato: 5511999999999)", "");
       if (!to) {
-        toast.error("Destinatario obrigatório para execucao manual");
+        toast.info("Simulação cancelada. Para testar sem número, use o WhatsApp real com #TESTE.");
         return;
       }
-
-      const firstMessageNode = nodes.find(
-        (node) => node.data.type === "action"
-      );
-      const defaultMessage = firstMessageNode?.data.config?.message as
-        | string
-        | undefined;
-      const message = window.prompt(
-        "Mensagem (opcional)",
-        defaultMessage || ""
-      );
-
-      input = { to };
-      if (message) {
-        input.message = message;
-      }
+      input = { from: to, to, message: "#TESTE simulado" };
     }
 
     setIsExecuting(true);
