@@ -39,6 +39,21 @@ const SYSTEM_ACTIONS: Record<string, StepImporter> = {
     importer: () => import("./steps/condition") as Promise<any>,
     stepFunction: "conditionStep",
   },
+  "WhatsApp Message": {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/whatsapp-actions") as Promise<any>,
+    stepFunction: "whatsAppMessageStep",
+  },
+  "Add Tag": {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/whatsapp-actions") as Promise<any>,
+    stepFunction: "manageTagStep",
+  },
+  "Remove Tag": {
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic module import
+    importer: () => import("./steps/whatsapp-actions") as Promise<any>,
+    stepFunction: "manageTagStep",
+  },
 };
 
 function isAskQuestionAction(actionType?: string): boolean {
