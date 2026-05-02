@@ -1087,7 +1087,13 @@ export async function POST(request: NextRequest) {
           const matchedWorkflowId = findMatchingWorkflow(keywordWorkflows, text)
           const targetWorkflowId = matchedWorkflowId || defaultWorkflowId
 
-          if (targetWorkflowId && text && from) {
+          // 🛡️ MODO FANTASMA (SANDBOX) 🛡️
+          // Para segurança máxima nesta fase, o Workflow SÓ vai ser ativado se
+          // você (o testador) mandar a palavra secreta junto com a mensagem.
+          const SANDBOX_SECRET = '#TESTE'
+          const isSandboxTest = text?.toUpperCase().includes(SANDBOX_SECRET)
+
+          if (targetWorkflowId && text && from && isSandboxTest) {
             try {
               const companyId = await getCompanyId(supabaseAdmin)
               await ensureWorkflowRecord(supabaseAdmin, targetWorkflowId, companyId)
@@ -1107,6 +1113,8 @@ export async function POST(request: NextRequest) {
                 headers['x-vercel-protection-bypass'] = bypassSecret
               }
 
+              console.log(`🚀 [MODO FANTASMA] Gatilho secreto ativado! Iniciando Workflow: ${targetWorkflowId}`)
+              
               await workflowClient.trigger({
                 url: `${baseUrl}/api/builder/workflow/${targetWorkflowId}/execute`,
                 body: {
