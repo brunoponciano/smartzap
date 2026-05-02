@@ -61,11 +61,12 @@ export const builderApiService = {
     const response = await fetch(`/api/builder/workflow/${workflowId}/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: input || {} }),
+      body: JSON.stringify({ workflowId, input: input || {} }),
     })
 
     if (!response.ok) {
-      throw new Error('Falha ao executar o fluxo')
+      const errorText = await response.text().catch(() => '')
+      throw new Error(`Falha ao executar o fluxo (${response.status}): ${errorText.substring(0, 200)}`)
     }
 
     return response.json()

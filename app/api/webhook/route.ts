@@ -427,7 +427,10 @@ type KeywordWorkflow = {
 async function loadKeywordWorkflows(
   excludeWorkflowId: string | null
 ): Promise<KeywordWorkflow[]> {
-  const { data } = await supabase
+  const admin = getSupabaseAdmin()
+  if (!admin) return []
+
+  const { data } = await admin
     .from('workflow_versions')
     .select('workflow_id, nodes, published_at')
     .eq('status', 'published')
