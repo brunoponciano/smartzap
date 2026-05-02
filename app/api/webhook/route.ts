@@ -1194,20 +1194,14 @@ export async function POST(request: NextRequest) {
           const matchedWorkflowId = findMatchingWorkflow(keywordWorkflows, text)
           const targetWorkflowId = matchedWorkflowId || defaultWorkflowId
 
-          // 🛡️ MODO FANTASMA (SANDBOX) 🛡️
-          // Para segurança máxima nesta fase, o Workflow SÓ vai ser ativado se
-          // você (o testador) mandar a palavra secreta junto com a mensagem.
-          const SANDBOX_SECRET = '#TESTE'
-          const isSandboxTest = text?.toUpperCase().includes(SANDBOX_SECRET)
+          console.log(`[Workflow] keyword match: workflowId=${matchedWorkflowId} default=${defaultWorkflowId} target=${targetWorkflowId} text="${text}" from=${from}`)
 
-          console.log(`[Workflow Debug] matchedWorkflowId=${matchedWorkflowId} defaultWorkflowId=${defaultWorkflowId} targetWorkflowId=${targetWorkflowId} isSandboxTest=${isSandboxTest} text="${text}" from=${from}`)
-
-          if (targetWorkflowId && text && from && isSandboxTest) {
+          if (targetWorkflowId && text && from) {
             try {
-              console.log(`🚀 [MODO FANTASMA] Gatilho secreto ativado! Workflow: ${targetWorkflowId} → ${from}`)
+              console.log(`🚀 [Workflow] Disparando automação: ${targetWorkflowId} → ${from}`)
               await executeWorkflowDirect(targetWorkflowId, from)
             } catch (e) {
-              console.error('[Webhook] Failed to execute workflow directly:', e)
+              console.error('[Webhook] Erro ao executar workflow:', e)
             }
           }
 
