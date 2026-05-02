@@ -515,7 +515,7 @@ async function executeWorkflowDirect(workflowId: string, from: string): Promise<
     const nodeConfig = node?.data?.config || {}
     console.log(`[Workflow] Nó: actionType="${actionType}" config keys=${Object.keys(nodeConfig).join(',')} messageText="${nodeConfig.messageText}" message="${nodeConfig.message}"`)
     try {
-      if (actionType === 'WhatsApp Message') {
+      if (actionType === 'WhatsApp Message' || actionType === 'whatsapp/send-message') {
         const messageText = String(
           nodeConfig.messageText ||
           nodeConfig.message ||
