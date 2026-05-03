@@ -33,7 +33,7 @@ import { getWhatsAppCredentials } from '@/lib/whatsapp-credentials'
 import { applyFlowMappingToContact } from '@/lib/flow-mapping'
 import { settingsDb } from '@/lib/supabase-db'
 import { ensureWorkflowRecord, getCompanyId } from '@/lib/builder/workflow-db'
-import { Client as WorkflowClient } from '@upstash/workflow'
+import { Client as QStashClient } from '@upstash/qstash'
 import { getPendingConversation } from '@/lib/builder/workflow-conversations'
 
 // T046-T048: Inbox integration
@@ -674,6 +674,52 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
         } else if (!contact?.id) {
           console.warn(`[Workflow] Contato não encontrado para telefone ${from}`)
         }
+      }
+
+      // Delay — pausa via QStash e interrompe o traversal
+      else if (actionType === 'Delay') {
+        const amount = Number(config.delayAmount ?? 5)
+        const unit = String(config.delayUnit ?? 'minutes')
+        const seconds =
+          unit === 'days'  ? amount * 86400 :
+          unit === 'hours' ? amount * 3600  :
+                             amount * 60
+
+        const nextEdges = edgeMap.get(currentNodeId)
+        const nextNodeId = nextEdges?.get('default') ?? nextEdges?.values().next().value ?? null
+
+        if (nextNodeId) {
+          const { nanoid } = await import('nanoid')
+          const conversationId = nanoid()
+
+          await admin.from('workflow_conversations').insert({
+            id: conversationId,
+            workflow_id: workflowId,
+            phone: normalizePhoneNumber(from) || from,
+            status: 'waiting',
+            resume_node_id: nextNodeId,
+            variable_key: null,
+            variables: { __triggerInput: { from, message: triggerMessage } },
+            pause_type: 'delay',
+          })
+
+          const baseUrl = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : (process.env.NEXT_PUBLIC_APP_URL ?? '')
+
+          const qstashClient = new QStashClient({ token: process.env.QSTASH_TOKEN ?? '' })
+          await qstashClient.publishJSON({
+            url: `${baseUrl}/api/builder/workflow/${workflowId}/delay-resume`,
+            body: { workflowId, conversationId },
+            delay: seconds,
+            retries: 3,
+          })
+
+          console.log(`[Workflow] Delay de ${amount} ${unit} (${seconds}s) agendado via QStash. conversationId=${conversationId}`)
+        }
+
+        // Interrompe o traversal — QStash retoma depois
+        break
       }
 
       // Avança para o próximo nó
