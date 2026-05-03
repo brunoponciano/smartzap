@@ -25,6 +25,8 @@ function resolveRecipient(triggerData?: Record<string, unknown>): string | null 
   // O gatilho do webhook repassa 'from'
   const from = triggerData.from as string;
   if (from) return from;
+  const contact = triggerData.contact as { phone?: string };
+  if (contact?.phone) return contact.phone;
   return null;
 }
 
