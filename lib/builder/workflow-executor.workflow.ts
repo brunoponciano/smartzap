@@ -894,11 +894,17 @@ export async function executeWorkflow(
                 const qstashClient = new QStashClient({
                   token: process.env.QSTASH_TOKEN ?? "",
                 });
+                const bypassHeaders: Record<string, string> = {};
+                if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+                  bypassHeaders["x-vercel-protection-bypass"] =
+                    process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+                }
                 await qstashClient.publishJSON({
                   url: `${baseUrl}/api/builder/workflow/${workflowId}/delay-resume`,
                   body: { workflowId, conversationId },
                   delay: seconds,
                   retries: 3,
+                  headers: bypassHeaders,
                 });
 
                 result = {

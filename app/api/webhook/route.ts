@@ -716,11 +716,16 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
             : (explicitAppUrl || vercelUrl || productionUrl || 'http://localhost:3000')
 
           const qstashClient = new QStashClient({ token: process.env.QSTASH_TOKEN ?? '' })
+          const bypassHeaders: Record<string, string> = {}
+          if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+            bypassHeaders['x-vercel-protection-bypass'] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+          }
           await qstashClient.publishJSON({
             url: `${baseUrl}/api/builder/workflow/${workflowId}/delay-resume`,
             body: { workflowId, conversationId },
             delay: seconds,
             retries: 3,
+            headers: bypassHeaders,
           })
 
           console.log(`[Workflow] Delay de ${amount} ${unit} (${seconds}s) agendado via QStash. conversationId=${conversationId}`)
