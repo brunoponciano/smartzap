@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Copy, Hash, Play, Webhook } from "lucide-react";
+import { Clock, Copy, Hash, Play, Tag, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/builder/ui/button";
 import { CodeEditor } from "@/components/builder/ui/code-editor";
@@ -66,6 +66,12 @@ export function TriggerConfig({
               <div className="flex items-center gap-2">
                 <Hash className="h-4 w-4" />
                 Palavras-chave
+              </div>
+            </SelectItem>
+            <SelectItem value="Tag">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Tag Adicionada
               </div>
             </SelectItem>
             <SelectItem value="Schedule">
@@ -170,6 +176,27 @@ export function TriggerConfig({
             />
             <p className="text-muted-foreground text-xs">
               Dispara quando a mensagem recebida contem qualquer palavra-chave.
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* Tag fields */}
+      {config?.triggerType === "Tag" && (
+        <>
+          <div className="space-y-2">
+            <Label className="ml-1" htmlFor="tagName">
+              Nome da Tag Exata
+            </Label>
+            <Input
+              disabled={disabled}
+              id="tagName"
+              onChange={(e) => onUpdateConfig("tagName", e.target.value)}
+              placeholder="ex: comprou_produto_a"
+              value={(config?.tagName as string) || ""}
+            />
+            <p className="text-muted-foreground text-xs mt-1">
+              O fluxo iniciara instantaneamente assim que um contato receber exatamente esta tag.
             </p>
           </div>
         </>
