@@ -27,6 +27,7 @@ const PUBLIC_API_ROUTES = [
     '/api/system',            // Info básica do sistema
     '/api/installer',         // Setup inicial (protegido separadamente após install)
     '/api/campaign/workflow', // Chamado internamente pelo QStash
+    '/api/builder/workflow',  // Callbacks do QStash para delay-resume e outros
     '/api/public',            // Rotas explicitamente públicas (lead forms, etc)
     '/api/attendants/validate', // Validar token de atendente — segurança é o token em si
     '/api/attendant',           // APIs do PWA de atendimento (conversas, mensagens)
