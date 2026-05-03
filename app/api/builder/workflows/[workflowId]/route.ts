@@ -191,13 +191,13 @@ function normalizeActionConfig(
 }
 
 function normalizeEdge(edge: unknown): WorkflowEdge {
+  const e = edge as Record<string, unknown> | null;
   return {
-    id: String((edge as { id?: unknown } | null)?.id ?? ""),
-    source: String((edge as { source?: unknown } | null)?.source ?? ""),
-    target: String((edge as { target?: unknown } | null)?.target ?? ""),
-    type:
-      typeof (edge as { type?: unknown } | null)?.type === "string"
-        ? (edge as { type?: string }).type
-        : undefined,
+    id: String(e?.id ?? ""),
+    source: String(e?.source ?? ""),
+    target: String(e?.target ?? ""),
+    type: typeof e?.type === "string" ? e.type : undefined,
+    sourceHandle: typeof e?.sourceHandle === "string" ? e.sourceHandle : undefined,
+    targetHandle: typeof e?.targetHandle === "string" ? e.targetHandle : undefined,
   } as WorkflowEdge;
 }

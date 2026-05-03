@@ -703,9 +703,17 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
             pause_type: 'delay',
           })
 
-          const baseUrl = process.env.VERCEL_URL
+          const vercelEnv = process.env.VERCEL_ENV ?? ''
+          const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+            ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+            : null
+          const vercelUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
-            : (process.env.NEXT_PUBLIC_APP_URL ?? '')
+            : null
+          const explicitAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? null
+          const baseUrl = vercelEnv === 'production'
+            ? (explicitAppUrl || productionUrl || vercelUrl || 'http://localhost:3000')
+            : (explicitAppUrl || vercelUrl || productionUrl || 'http://localhost:3000')
 
           const qstashClient = new QStashClient({ token: process.env.QSTASH_TOKEN ?? '' })
           await qstashClient.publishJSON({
