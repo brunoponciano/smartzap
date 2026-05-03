@@ -1,4 +1,5 @@
-import { serve } from "@upstash/workflow/nextjs";
+import { NextRequest, NextResponse } from "next/server";
+import { Receiver } from "@upstash/qstash";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -8,25 +9,52 @@ import {
 } from "@/lib/builder/workflow-db";
 import { executeWorkflow } from "@/lib/builder/workflow-executor.workflow";
 import { validateWorkflowSchema } from "@/lib/shared/workflow-schema";
-import { completeConversation } from "@/lib/builder/workflow-conversations";
 
-type DelayResumeInput = {
-  workflowId: string;
-  conversationId: string;
-};
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ workflowId: string }> }
+) {
+  const body = await request.text();
 
-export const { POST } = serve<DelayResumeInput>(async (context) => {
-  const { workflowId, conversationId } = context.requestPayload;
+  // Verifica assinatura do QStash
+  const receiver = new Receiver({
+    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY ?? "",
+    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY ?? "",
+  });
+
+  const isValid = await receiver
+    .verify({ signature: request.headers.get("upstash-signature") ?? "", body })
+    .catch(() => false);
+
+  if (!isValid) {
+    console.error("[DelayResume] Assinatura QStash inválida");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { workflowId: bodyWorkflowId, conversationId } = JSON.parse(body) as {
+    workflowId: string;
+    conversationId: string;
+  };
+
+  const { workflowId: paramWorkflowId } = await params;
+  const workflowId = bodyWorkflowId || paramWorkflowId;
 
   if (!workflowId || !conversationId) {
-    return { status: "failed", error: "Missing workflowId or conversationId" };
+    return NextResponse.json(
+      { error: "Missing workflowId or conversationId" },
+      { status: 400 }
+    );
   }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
-    return { status: "failed", error: "Supabase not configured" };
+    return NextResponse.json(
+      { error: "Supabase not configured" },
+      { status: 500 }
+    );
   }
 
+  // Busca a conversa pausada pelo delay
   const { data: conversation } = await supabase
     .from("workflow_conversations")
     .select("*")
@@ -36,18 +64,24 @@ export const { POST } = serve<DelayResumeInput>(async (context) => {
     .maybeSingle();
 
   if (!conversation) {
-    return {
-      status: "skipped",
-      reason: "conversation_not_found_or_already_resumed",
-    };
+    console.warn(`[DelayResume] Conversa ${conversationId} não encontrada ou já retomada`);
+    return NextResponse.json({ status: "skipped" });
   }
+
+  // Marca como completa imediatamente para evitar dupla execução
+  await supabase
+    .from("workflow_conversations")
+    .update({ status: "completed" })
+    .eq("id", conversationId);
 
   const companyId = await getCompanyId(supabase);
   const record = await ensureWorkflowRecord(supabase, workflowId, companyId);
   const workflow = toSavedWorkflow(record);
   const validation = validateWorkflowSchema(workflow);
+
   if (!validation.success) {
-    return { status: "failed", error: "Invalid workflow" };
+    console.error("[DelayResume] Workflow inválido:", validation.errors);
+    return NextResponse.json({ error: "Invalid workflow" }, { status: 400 });
   }
 
   const executionId = nanoid();
@@ -66,29 +100,35 @@ export const { POST } = serve<DelayResumeInput>(async (context) => {
   const savedTriggerInput =
     (savedVars.__triggerInput as Record<string, unknown>) ?? {};
 
-  const execution = await context.run(
-    `delay-resume-${workflowId}-${conversationId}`,
-    () =>
-      executeWorkflow({
-        nodes: workflow.nodes,
-        edges: workflow.edges,
-        triggerInput: savedTriggerInput,
-        executionId,
-        workflowId,
-        startNodeIds: [conversation.resume_node_id],
-        initialVariables: savedVars,
-      })
-  );
+  console.log(`[DelayResume] Retomando workflow ${workflowId} a partir do nó ${conversation.resume_node_id}`);
 
-  await completeConversation(supabase, conversation.id, savedVars);
-
-  await supabase
-    .from("workflow_runs")
-    .update({
-      status: execution.success ? "success" : "failed",
-      finished_at: new Date().toISOString(),
+  executeWorkflow({
+    nodes: workflow.nodes,
+    edges: workflow.edges,
+    triggerInput: savedTriggerInput,
+    executionId,
+    workflowId,
+    startNodeIds: [conversation.resume_node_id],
+    initialVariables: savedVars,
+  })
+    .then(async (execution) => {
+      await supabase
+        .from("workflow_runs")
+        .update({
+          status: execution.success ? "success" : "failed",
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", executionId);
+      console.log(`[DelayResume] Execução ${executionId} concluída: ${execution.success ? "success" : "failed"}`);
     })
-    .eq("id", executionId);
+    .catch(async (err) => {
+      console.error(`[DelayResume] Erro na execução ${executionId}:`, err);
+      await supabase
+        .from("workflow_runs")
+        .update({ status: "failed", finished_at: new Date().toISOString() })
+        .eq("id", executionId);
+    });
 
-  return { status: execution.success ? "success" : "failed" };
-});
+  // Responde imediatamente ao QStash (não bloqueia)
+  return NextResponse.json({ status: "accepted", executionId });
+}
