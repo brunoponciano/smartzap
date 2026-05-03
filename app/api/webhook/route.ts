@@ -602,9 +602,15 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
       if (actionType === 'Condition') {
         const result = evaluateCondition(config, triggerMessage, contact)
         const branch = result ? 'true' : 'false'
-        console.log(`[Workflow] Condição avaliada: ${result} → seguindo branch "${branch}"`)
         const nextEdges = edgeMap.get(currentNodeId)
-        currentNodeId = nextEdges?.get(branch) ?? null
+        // Debug: mostra todas as edges disponíveis neste nó
+        const edgeKeys = nextEdges ? Array.from(nextEdges.keys()) : []
+        console.log(`[Workflow] Condição avaliada: ${result} → branch "${branch}" | edges disponíveis: [${edgeKeys.join(', ')}]`)
+        // Tenta branch exato, fallback para 'default' se não encontrar
+        currentNodeId = nextEdges?.get(branch) ?? nextEdges?.get('default') ?? null
+        if (!currentNodeId) {
+          console.warn(`[Workflow] Branch "${branch}" não encontrado. Edges: ${JSON.stringify(edgeKeys)}`)
+        }
         continue
       }
 
