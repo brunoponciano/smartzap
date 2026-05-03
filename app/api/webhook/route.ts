@@ -547,11 +547,15 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
   }
 
   // Constrói mapa de adjacência: nodeId -> Map<sourceHandle, targetNodeId>
-  // sourceHandle é "true"/"false" para condição, null/"default" para outros
   const edgeMap = new Map<string, Map<string, string>>()
+  // Também constrói lista completa de edges por nó (para detecção por posição no Condition)
+  const edgeListMap = new Map<string, string[]>()
   for (const edge of (edges || [])) {
     if (!edgeMap.has(edge.source)) edgeMap.set(edge.source, new Map())
     edgeMap.get(edge.source)!.set(edge.sourceHandle ?? 'default', edge.target)
+    // Lista completa (não sobrescreve duplicatas)
+    if (!edgeListMap.has(edge.source)) edgeListMap.set(edge.source, [])
+    edgeListMap.get(edge.source)!.push(edge.target)
   }
   const nodeMap = new Map(nodes.map((n: any) => [n.id, n]))
 
@@ -603,14 +607,28 @@ async function executeWorkflowDirect(workflowId: string, from: string, triggerMe
         const result = evaluateCondition(config, triggerMessage, contact)
         const branch = result ? 'true' : 'false'
         const nextEdges = edgeMap.get(currentNodeId)
-        // Debug: mostra todas as edges disponíveis neste nó
         const edgeKeys = nextEdges ? Array.from(nextEdges.keys()) : []
-        console.log(`[Workflow] Condição avaliada: ${result} → branch "${branch}" | edges disponíveis: [${edgeKeys.join(', ')}]`)
-        // Tenta branch exato, fallback para 'default' se não encontrar
-        currentNodeId = nextEdges?.get(branch) ?? nextEdges?.get('default') ?? null
-        if (!currentNodeId) {
-          console.warn(`[Workflow] Branch "${branch}" não encontrado. Edges: ${JSON.stringify(edgeKeys)}`)
+
+        // 1ª opção: usar sourceHandle exato ("true"/"false")
+        let targetNodeId: string | null = nextEdges?.get(branch) ?? null
+
+        // 2ª opção: detecção por posição Y dos nós conectados
+        // Nó mais acima (menor Y) = Sim (true), mais abaixo (maior Y) = Não (false)
+        if (!targetNodeId) {
+          const allTargets = edgeListMap.get(currentNodeId) || []
+          const sortedByY = allTargets
+            .map(id => ({ id, y: (nodeMap.get(id)?.position?.y ?? 0) }))
+            .sort((a, b) => a.y - b.y)
+          if (sortedByY.length >= 2) {
+            targetNodeId = result ? sortedByY[0].id : sortedByY[sortedByY.length - 1].id
+            console.log(`[Workflow] Condition branch por posição Y: result=${result} → target=${targetNodeId} (Y-sorted: ${sortedByY.map(n => n.id.slice(-4)+':'+Math.round(n.y)).join(', ')})`)
+          } else if (sortedByY.length === 1) {
+            targetNodeId = sortedByY[0].id
+          }
         }
+
+        console.log(`[Workflow] Condição avaliada: ${result} → branch "${branch}" | edges: [${edgeKeys.join(', ')}] → next=${targetNodeId}`)
+        currentNodeId = targetNodeId
         continue
       }
 
