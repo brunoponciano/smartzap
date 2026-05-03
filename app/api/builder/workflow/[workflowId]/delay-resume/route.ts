@@ -101,33 +101,33 @@ export async function POST(
 
   console.log(`[DelayResume] Retomando workflow ${workflowId} a partir do nó ${conversation.resume_node_id}`);
 
-  executeWorkflow({
-    nodes: workflow.nodes,
-    edges: workflow.edges,
-    triggerInput: savedTriggerInput,
-    executionId,
-    workflowId,
-    startNodeIds: [conversation.resume_node_id],
-    initialVariables: savedVars,
-  })
-    .then(async (execution) => {
-      await supabase
-        .from("workflow_runs")
-        .update({
-          status: execution.success ? "success" : "failed",
-          finished_at: new Date().toISOString(),
-        })
-        .eq("id", executionId);
-      console.log(`[DelayResume] Execução ${executionId} concluída: ${execution.success ? "success" : "failed"}`);
-    })
-    .catch(async (err) => {
-      console.error(`[DelayResume] Erro na execução ${executionId}:`, err);
-      await supabase
-        .from("workflow_runs")
-        .update({ status: "failed", finished_at: new Date().toISOString() })
-        .eq("id", executionId);
+  try {
+    const execution = await executeWorkflow({
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+      triggerInput: savedTriggerInput,
+      executionId,
+      workflowId,
+      startNodeIds: [conversation.resume_node_id],
+      initialVariables: savedVars,
     });
 
-  // Responde imediatamente ao QStash (não bloqueia)
-  return NextResponse.json({ status: "accepted", executionId });
+    await supabase
+      .from("workflow_runs")
+      .update({
+        status: execution.success ? "success" : "failed",
+        finished_at: new Date().toISOString(),
+      })
+      .eq("id", executionId);
+
+    console.log(`[DelayResume] Execução ${executionId} concluída: ${execution.success ? "success" : "failed"}`);
+    return NextResponse.json({ status: "ok", executionId });
+  } catch (err) {
+    console.error(`[DelayResume] Erro na execução ${executionId}:`, err);
+    await supabase
+      .from("workflow_runs")
+      .update({ status: "failed", finished_at: new Date().toISOString() })
+      .eq("id", executionId);
+    return NextResponse.json({ error: "Execution failed" }, { status: 500 });
+  }
 }
