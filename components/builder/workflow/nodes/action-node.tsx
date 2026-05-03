@@ -351,7 +351,7 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
     return (
       <Node
         className={cn(
-          "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
+          "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out !overflow-visible",
           selected && "border-primary",
           isDisabled && "opacity-50"
         )}
@@ -359,38 +359,37 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
         handles={{ target: true, source: false }}
         status={status}
       >
-        {/* Two labeled output handles */}
+        {/* Output handle TRUE (Sim) */}
         <Handle
           id="true"
           position={Position.Right}
-          style={{ top: "35%", right: -8 }}
+          style={{ top: "33%" }}
           type="source"
         />
-        <span
-          className="absolute text-[9px] font-semibold text-green-400"
-          style={{ right: 8, top: "26%" }}
-        >
-          ✓ Sim
-        </span>
+        {/* Output handle FALSE (Não) */}
         <Handle
           id="false"
           position={Position.Right}
-          style={{ top: "65%", right: -8 }}
+          style={{ top: "67%" }}
           type="source"
         />
-        <span
-          className="absolute text-[9px] font-semibold text-red-400"
-          style={{ right: 8, top: "67%" }}
-        >
-          ✗ Não
-        </span>
 
         <StatusBadge status={status} />
-        <div className="flex flex-col items-center justify-center gap-3 p-6">
-          <GitBranch className="size-12 text-pink-300" strokeWidth={1.5} />
-          <div className="flex flex-col items-center gap-1 text-center">
-            <NodeTitle className="text-base">{displayTitle}</NodeTitle>
+
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4">
+          <GitBranch className="size-10 text-pink-300" strokeWidth={1.5} />
+          <div className="flex flex-col items-center gap-0.5 text-center">
+            <NodeTitle className="text-sm">{displayTitle}</NodeTitle>
             <NodeDescription className="text-xs">Condição</NodeDescription>
+          </div>
+          {/* Branch labels — pointer-events none to not block handles */}
+          <div className="mt-1 w-full space-y-3 pr-1 text-right">
+            <p className="text-[9px] font-semibold text-green-400" style={{ pointerEvents: "none" }}>
+              ✓ Sim
+            </p>
+            <p className="text-[9px] font-semibold text-red-400" style={{ pointerEvents: "none" }}>
+              ✗ Não
+            </p>
           </div>
         </div>
       </Node>
