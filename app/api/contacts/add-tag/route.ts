@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { contactDb, ContactStatus } from "@/lib/supabase-db";
+import { contactDb } from "@/lib/supabase-db";
+import { ContactStatus } from "@/types";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { requireSessionOrApiKey } from "@/lib/request-auth";
 import { executeWorkflow } from "@/lib/builder/workflow-executor.workflow";
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
         name: contactName || "",
         email: contactEmail || null,
         status: ContactStatus.OPT_IN,
+        tags: [],
       },
       [tagNormalized]
     );
