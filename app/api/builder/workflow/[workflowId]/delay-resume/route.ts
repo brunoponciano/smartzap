@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Receiver } from "@upstash/qstash";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -14,30 +13,30 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ workflowId: string }> }
 ) {
-  const body = await request.text();
+  console.log("[DelayResume] Requisição recebida do QStash");
 
-  // Verifica assinatura do QStash
-  const receiver = new Receiver({
-    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY ?? "",
-    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY ?? "",
-  });
-
-  const isValid = await receiver
-    .verify({ signature: request.headers.get("upstash-signature") ?? "", body })
-    .catch(() => false);
-
-  if (!isValid) {
-    console.error("[DelayResume] Assinatura QStash inválida");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let body: string;
+  try {
+    body = await request.text();
+  } catch (e) {
+    console.error("[DelayResume] Erro ao ler body:", e);
+    return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const { workflowId: bodyWorkflowId, conversationId } = JSON.parse(body) as {
-    workflowId: string;
-    conversationId: string;
-  };
+  let bodyWorkflowId: string;
+  let conversationId: string;
+  try {
+    const parsed = JSON.parse(body) as { workflowId: string; conversationId: string };
+    bodyWorkflowId = parsed.workflowId;
+    conversationId = parsed.conversationId;
+  } catch (e) {
+    console.error("[DelayResume] Erro ao parsear body:", body, e);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
   const { workflowId: paramWorkflowId } = await params;
   const workflowId = bodyWorkflowId || paramWorkflowId;
+  console.log("[DelayResume] workflowId:", workflowId, "conversationId:", conversationId);
 
   if (!workflowId || !conversationId) {
     return NextResponse.json(
