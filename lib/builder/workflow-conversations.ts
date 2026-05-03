@@ -56,6 +56,7 @@ export async function getPendingConversation(
     .select("*")
     .eq("phone", phone)
     .eq("status", "waiting")
+    .in("pause_type", ["question", "ask-question"])
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
