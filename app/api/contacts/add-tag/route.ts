@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { requireSessionOrApiKey } from "@/lib/request-auth";
 import { executeWorkflow } from "@/lib/builder/workflow-executor.workflow";
 import { nanoid } from "nanoid";
-import { normalizePhone } from "@/lib/phone-formatter";
+import { normalizePhoneNumber } from "@/lib/phone-formatter";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedPhone = normalizePhone(phone);
+    const normalizedPhone = normalizePhoneNumber(phone);
     const tagNormalized = tag.trim();
 
     // 1. Adiciona a Tag ao Contato (cria o contato se não existir)
