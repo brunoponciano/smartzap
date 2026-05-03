@@ -277,12 +277,7 @@ function ConditionFields({
         <Label htmlFor="conditionField">Verificar</Label>
         <Select
           disabled={disabled}
-          onValueChange={(value) => {
-            onUpdateConfig("conditionField", value);
-            // Reset operator when field changes
-            const firstOp = operatorsByField[value]?.[0]?.value || "contains";
-            onUpdateConfig("conditionOperator", firstOp);
-          }}
+          onValueChange={(value) => onUpdateConfig("conditionField", value)}
           value={conditionField}
         >
           <SelectTrigger id="conditionField">
