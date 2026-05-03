@@ -346,53 +346,70 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   const aiModel = getAiModel();
   const isDisabled = data.enabled === false;
 
-  // Special rendering for Condition node: two output handles
+  // Special rendering for Condition node: plain div with two colored handles
   if (actionType === "Condition") {
     return (
-      <Node
+      <div
         className={cn(
-          "relative flex h-48 w-48 flex-col items-center justify-center shadow-none transition-all duration-150 ease-out !overflow-visible",
-          selected && "border-primary",
+          "relative flex h-52 w-52 flex-col items-center justify-center rounded-md border bg-card shadow-none transition-all duration-150 ease-out",
+          selected && "border-primary border-2",
           isDisabled && "opacity-50"
         )}
         data-testid={`action-node-${id}`}
-        handles={{ target: true, source: false }}
-        status={status}
       >
-        {/* Output handle TRUE (Sim) */}
+        {/* Input handle — left */}
+        <Handle position={Position.Left} type="target" />
+
+        {/* Output handle TRUE (Sim) — large green */}
         <Handle
           id="true"
           position={Position.Right}
-          style={{ top: "33%" }}
+          style={{
+            top: "35%",
+            width: 14,
+            height: 14,
+            background: "#22c55e",
+            border: "2px solid #16a34a",
+            borderRadius: "50%",
+          }}
           type="source"
         />
-        {/* Output handle FALSE (Não) */}
+        {/* Output handle FALSE (Não) — large red */}
         <Handle
           id="false"
           position={Position.Right}
-          style={{ top: "67%" }}
+          style={{
+            top: "65%",
+            width: 14,
+            height: 14,
+            background: "#ef4444",
+            border: "2px solid #dc2626",
+            borderRadius: "50%",
+          }}
           type="source"
         />
 
-        <StatusBadge status={status} />
-
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4">
-          <GitBranch className="size-10 text-pink-300" strokeWidth={1.5} />
-          <div className="flex flex-col items-center gap-0.5 text-center">
-            <NodeTitle className="text-sm">{displayTitle}</NodeTitle>
-            <NodeDescription className="text-xs">Condição</NodeDescription>
-          </div>
-          {/* Branch labels — pointer-events none to not block handles */}
-          <div className="mt-1 w-full space-y-3 pr-1 text-right">
-            <p className="text-[9px] font-semibold text-green-400" style={{ pointerEvents: "none" }}>
-              ✓ Sim
-            </p>
-            <p className="text-[9px] font-semibold text-red-400" style={{ pointerEvents: "none" }}>
-              ✗ Não
-            </p>
-          </div>
+        {/* Labels aligned with handles */}
+        <div
+          className="pointer-events-none absolute right-5 text-[9px] font-semibold text-green-400"
+          style={{ top: "30%" }}
+        >
+          ✓ Sim
         </div>
-      </Node>
+        <div
+          className="pointer-events-none absolute right-5 text-[9px] font-semibold text-red-400"
+          style={{ top: "60%" }}
+        >
+          ✗ Não
+        </div>
+
+        {/* Center content */}
+        <GitBranch className="size-10 text-pink-300" strokeWidth={1.5} />
+        <div className="mt-2 flex flex-col items-center gap-0.5 text-center">
+          <span className="text-sm font-semibold text-card-foreground">{displayTitle}</span>
+          <span className="text-xs text-muted-foreground">Condição</span>
+        </div>
+      </div>
     );
   }
 
