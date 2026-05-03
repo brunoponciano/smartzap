@@ -346,68 +346,64 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
   const aiModel = getAiModel();
   const isDisabled = data.enabled === false;
 
-  // Special rendering for Condition node: plain div with two colored handles
+  // Special rendering for Condition node: split layout (top=Sim, bottom=Não)
   if (actionType === "Condition") {
     return (
       <div
         className={cn(
-          "relative flex h-52 w-52 flex-col items-center justify-center rounded-md border bg-card shadow-none transition-all duration-150 ease-out",
+          "relative flex h-56 w-52 flex-col overflow-hidden rounded-md border bg-card shadow-none transition-all duration-150 ease-out",
           selected && "border-primary border-2",
           isDisabled && "opacity-50"
         )}
         data-testid={`action-node-${id}`}
       >
-        {/* Input handle — left */}
-        <Handle position={Position.Left} type="target" />
+        {/* Input handle — left center */}
+        <Handle position={Position.Left} type="target" style={{ top: "50%" }} />
 
-        {/* Output handle TRUE (Sim) — large green */}
-        <Handle
-          id="true"
-          position={Position.Right}
-          style={{
-            top: "35%",
-            width: 14,
-            height: 14,
-            background: "#22c55e",
-            border: "2px solid #16a34a",
-            borderRadius: "50%",
-          }}
-          type="source"
-        />
-        {/* Output handle FALSE (Não) — large red */}
-        <Handle
-          id="false"
-          position={Position.Right}
-          style={{
-            top: "65%",
-            width: 14,
-            height: 14,
-            background: "#ef4444",
-            border: "2px solid #dc2626",
-            borderRadius: "50%",
-          }}
-          type="source"
-        />
-
-        {/* Labels aligned with handles */}
-        <div
-          className="pointer-events-none absolute right-5 text-[9px] font-semibold text-green-400"
-          style={{ top: "30%" }}
-        >
-          ✓ Sim
-        </div>
-        <div
-          className="pointer-events-none absolute right-5 text-[9px] font-semibold text-red-400"
-          style={{ top: "60%" }}
-        >
-          ✗ Não
+        {/* ── TOP HALF: Sim ─────────────────── */}
+        <div className="relative flex flex-1 flex-col items-center justify-center border-b border-dashed border-green-500/30 bg-green-500/5">
+          <span className="text-[10px] font-bold text-green-400">✓ SIM</span>
+          <span className="text-[9px] text-muted-foreground">se verdadeiro</span>
+          {/* Output handle TRUE */}
+          <Handle
+            id="true"
+            position={Position.Right}
+            style={{
+              top: "50%",
+              width: 14,
+              height: 14,
+              background: "#22c55e",
+              border: "2px solid #16a34a",
+              borderRadius: "50%",
+            }}
+            type="source"
+          />
         </div>
 
-        {/* Center content */}
-        <GitBranch className="size-10 text-pink-300" strokeWidth={1.5} />
-        <div className="mt-2 flex flex-col items-center gap-0.5 text-center">
-          <span className="text-sm font-semibold text-card-foreground">{displayTitle}</span>
-          <span className="text-xs text-muted-foreground">Condição</span>
+        {/* ── CENTER: icon ───────────────────── */}
+        <div className="flex items-center justify-center gap-1 py-1">
+          <GitBranch className="size-4 text-pink-300" strokeWidth={1.5} />
+          <span className="text-[10px] font-semibold text-card-foreground">Condição</span>
+        </div>
+
+        {/* ── BOTTOM HALF: Não ──────────────── */}
+        <div className="relative flex flex-1 flex-col items-center justify-center border-t border-dashed border-red-500/30 bg-red-500/5">
+          <span className="text-[10px] font-bold text-red-400">✗ NÃO</span>
+          <span className="text-[9px] text-muted-foreground">se falso</span>
+          {/* Output handle FALSE */}
+          <Handle
+            id="false"
+            position={Position.Right}
+            style={{
+              top: "50%",
+              width: 14,
+              height: 14,
+              background: "#ef4444",
+              border: "2px solid #dc2626",
+              borderRadius: "50%",
+            }}
+            type="source"
+          />
         </div>
       </div>
     );
