@@ -102,6 +102,7 @@ export function WorkflowCanvas() {
 
   const connectingNodeId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
+  const connectingHandleId = useRef<string | null>(null);
   const justCreatedNodeFromConnection = useRef(false);
   const viewportInitialized = useRef(false);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
@@ -295,6 +296,7 @@ export function WorkflowCanvas() {
     (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
       connectingNodeId.current = params.nodeId;
       connectingHandleType.current = params.handleType;
+      connectingHandleId.current = params.handleId;
     },
     []
   );
@@ -344,11 +346,13 @@ export function WorkflowCanvas() {
       ) {
         const sourceId = fromSource ? connectingId : targetNodeId;
         const targetId = fromSource ? targetNodeId : connectingId;
+        const sourceHandle = fromSource ? connectingHandleId.current : null;
+        const targetHandle = fromSource ? null : connectingHandleId.current;
         onConnect({
           source: sourceId,
           target: targetId,
-          sourceHandle: null,
-          targetHandle: null,
+          sourceHandle,
+          targetHandle,
         });
       }
     },
@@ -416,11 +420,15 @@ export function WorkflowCanvas() {
 
       // Create connection from the source node to the new node
       const fromSource = connectingHandleType.current === "source";
+      const sourceHandle = fromSource ? connectingHandleId.current : null;
+      const targetHandle = fromSource ? null : connectingHandleId.current;
 
       const newEdge = {
         id: nanoid(),
         source: fromSource ? sourceNodeId : newNode.id,
         target: fromSource ? newNode.id : sourceNodeId,
+        sourceHandle: sourceHandle || undefined,
+        targetHandle: targetHandle || undefined,
         type: "animated",
       };
       setEdges([...edges, newEdge]);
@@ -486,6 +494,7 @@ export function WorkflowCanvas() {
 
       connectingNodeId.current = null;
       connectingHandleType.current = null;
+      connectingHandleId.current = null;
     },
     [
       getClientPosition,
