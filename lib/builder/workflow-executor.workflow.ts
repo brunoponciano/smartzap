@@ -21,6 +21,8 @@ import { createConversation } from "./workflow-conversations";
 import { normalizePhoneNumber } from "@/lib/phone-formatter";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 import { getWorkflowExecutionConfig } from "@/lib/builder/workflow-execution-settings";
+import { Client as QStashClient } from "@upstash/qstash";
+import { nanoid } from "nanoid";
 
 // System actions that don't have plugins - maps to module import functions
 const SYSTEM_ACTIONS: Record<string, StepImporter> = {
@@ -365,13 +367,9 @@ async function executeActionStep(input: {
   );
 
   if (actionType === "Delay") {
-    const delayMs =
-      typeof stepInput.delayMs === "number"
-        ? stepInput.delayMs
-        : Number(stepInput.delayMs || 0);
-    const safeDelay = Number.isFinite(delayMs) ? Math.max(0, delayMs) : 0;
-    await new Promise((resolve) => setTimeout(resolve, safeDelay));
-    return { success: true, data: { delayMs: safeDelay } };
+    // Delay is handled in the main executor loop via QStash
+    // This path is only reached if called directly without workflow context
+    return { success: true, data: { delayed: true } };
   }
 
   if (actionType === "Set Variable") {
@@ -836,6 +834,98 @@ export async function executeWorkflow(
 
             if (originalCondition !== undefined) {
               processedConfig.condition = originalCondition;
+            }
+
+            // Tratamento do nó Delay via QStash persistente
+            if (actionType === "Delay" && workflowId) {
+              const amount = Number(processedConfig.delayAmount ?? 5);
+              const unit = String(processedConfig.delayUnit ?? "minutes");
+              const seconds =
+                unit === "days"  ? amount * 86400 :
+                unit === "hours" ? amount * 3600  :
+                                   amount * 60;
+
+              const nextNodes = edgesBySource.get(node.id) || [];
+              const nextNodeId = nextNodes[0];
+
+              if (!nextNodeId) {
+                result = { success: true, data: { delayed: true, seconds } };
+                results[nodeId] = result;
+                resolvedNodes.add(nodeId);
+                outputs[nodeId.replace(/[^a-zA-Z0-9]/g, "_")] = {
+                  label: node.data.label || nodeId,
+                  data: result.data,
+                };
+                continue;
+              }
+
+              const phoneRaw = String(
+                (triggerInput?.from as string | undefined) ||
+                  (triggerInput?.to as string | undefined) ||
+                  ""
+              );
+              const conversationId = nanoid();
+              const supabase = getSupabaseAdmin();
+
+              if (supabase) {
+                await supabase.from("workflow_conversations").insert({
+                  id: conversationId,
+                  workflow_id: workflowId,
+                  phone: normalizePhoneNumber(phoneRaw) || phoneRaw,
+                  status: "waiting",
+                  resume_node_id: nextNodeId,
+                  variable_key: null,
+                  variables: { ...variables, __triggerInput: triggerInput },
+                  pause_type: "delay",
+                });
+
+                const baseUrl = process.env.VERCEL_URL
+                  ? `https://${process.env.VERCEL_URL}`
+                  : (process.env.NEXT_PUBLIC_APP_URL ?? "");
+
+                const qstashClient = new QStashClient({
+                  token: process.env.QSTASH_TOKEN ?? "",
+                });
+                await qstashClient.publishJSON({
+                  url: `${baseUrl}/api/builder/workflow/${workflowId}/delay-resume`,
+                  body: { workflowId, conversationId },
+                  delay: seconds,
+                  retries: 3,
+                });
+
+                result = {
+                  success: true,
+                  data: { paused: true, conversationId, seconds },
+                };
+                results[nodeId] = result;
+                resolvedNodes.add(nodeId);
+                outputs[nodeId.replace(/[^a-zA-Z0-9]/g, "_")] = {
+                  label: node.data.label || nodeId,
+                  data: result.data,
+                };
+                return {
+                  success: true,
+                  results,
+                  outputs,
+                  paused: true,
+                  conversationId,
+                  resumeNodeId: nextNodeId,
+                };
+              }
+
+              // Supabase não configurado: fallback sem persistência
+              result = { success: true, data: { delayed: true, seconds } };
+              results[nodeId] = result;
+              resolvedNodes.add(nodeId);
+              outputs[nodeId.replace(/[^a-zA-Z0-9]/g, "_")] = {
+                label: node.data.label || nodeId,
+                data: result.data,
+              };
+              const nextNodesDelay = edgesBySource.get(nodeId) || [];
+              for (const next of nextNodesDelay) {
+                markEdgeResult(next, "satisfied");
+              }
+              continue;
             }
 
             const isAskQuestion = shouldTreatAsAskQuestion(

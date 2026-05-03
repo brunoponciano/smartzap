@@ -343,18 +343,42 @@ function DelayFields({
   onUpdateConfig: (key: string, value: string) => void;
   disabled: boolean;
 }) {
+  const amount = (config.delayAmount as string) ?? "5";
+  const unit = (config.delayUnit as string) ?? "minutes";
+
   return (
-    <div className="space-y-2">
-      <Label htmlFor="delayMs">Atraso (ms)</Label>
-      <Input
-        disabled={disabled}
-        id="delayMs"
-        onChange={(e) => onUpdateConfig("delayMs", e.target.value)}
-        placeholder="1000"
-        value={(config?.delayMs as string) || ""}
-      />
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label htmlFor="delayAmount">Quantidade</Label>
+        <Input
+          disabled={disabled}
+          id="delayAmount"
+          type="number"
+          min="1"
+          value={amount}
+          onChange={(e) => onUpdateConfig("delayAmount", e.target.value)}
+          placeholder="5"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Unidade</Label>
+        <Select
+          disabled={disabled}
+          value={unit}
+          onValueChange={(v) => onUpdateConfig("delayUnit", v)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="minutes">Minutos</SelectItem>
+            <SelectItem value="hours">Horas</SelectItem>
+            <SelectItem value="days">Dias</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <p className="text-muted-foreground text-xs">
-        Wait before continuing to the next node.
+        O fluxo será pausado por este tempo antes de continuar para o próximo nó.
       </p>
     </div>
   );
