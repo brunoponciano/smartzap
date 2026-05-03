@@ -196,7 +196,29 @@ export const PanelInner = () => {
           newConfig = { ...newConfig, integrationId: undefined };
         }
 
-        updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
+        let dataToUpdate: Partial<WorkflowNode["data"]> = { config: newConfig };
+
+        // Update label and description automatically when trigger type changes
+        if (selectedNode.data.type === "trigger" && key === "triggerType") {
+          if (value === "Tag") {
+            dataToUpdate.label = "Tag Adicionada";
+            dataToUpdate.description = "Inicia quando contato recebe tag";
+          } else if (value === "Manual") {
+            dataToUpdate.label = "Gatilho Manual";
+            dataToUpdate.description = "Inicia ao clicar no botao";
+          } else if (value === "Keywords") {
+            dataToUpdate.label = "Palavras-chave";
+            dataToUpdate.description = "Inicia quando chega mensagem";
+          } else if (value === "Schedule") {
+            dataToUpdate.label = "Agendamento";
+            dataToUpdate.description = "Inicia em data especifica";
+          } else if (value === "Webhook") {
+            dataToUpdate.label = "Webhook";
+            dataToUpdate.description = "Inicia via API externa";
+          }
+        }
+
+        updateNodeData({ id: selectedNode.id, data: dataToUpdate });
 
         // Trigger auto-selection when action type changes
         if (key === "actionType") {
