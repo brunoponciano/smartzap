@@ -11,7 +11,7 @@ export function applySegmentFilter(query: any, filter: SegmentFilter): any {
       }
     } else {
       const orClause = include.conditions
-        .map(({ tag }) => `tags.cs.{"${tag}"}`)
+        .map(({ tag }) => `tags.cs.${JSON.stringify([tag])}`)
         .join(',')
       query = query.or(orClause)
     }
@@ -24,7 +24,7 @@ export function applySegmentFilter(query: any, filter: SegmentFilter): any {
       }
     } else {
       const orClause = exclude.conditions
-        .map(({ tag }) => `tags.not.cs.{"${tag}"}`)
+        .map(({ tag }) => `tags.not.cs.${JSON.stringify([tag])}`)
         .join(',')
       query = query.or(orClause)
     }
