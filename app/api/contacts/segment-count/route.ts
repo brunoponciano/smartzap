@@ -56,6 +56,8 @@ export async function GET(request: Request) {
     let safeTags: string[] = []
     if (segmentParam) {
       const segmentFilter = decodeSegment(segmentParam)
+      console.log('[segment-count] segmentParam:', segmentParam)
+      console.log('[segment-count] segmentFilter:', JSON.stringify(segmentFilter))
       if (!isSegmentFilterEmpty(segmentFilter)) {
         query = applySegmentFilter(query, segmentFilter)
         applyTagFilterInSql = true
