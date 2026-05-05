@@ -80,6 +80,7 @@ metadata.json
 scripts/*
 !scripts/meta-audit.mjs
 !scripts/migrate-leads.ts
+!scripts/sync-tags.ts
 
 # OS
 .DS_Store
