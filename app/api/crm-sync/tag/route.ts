@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@supabase/supabase-js'
 import { contactDb } from '@/lib/supabase-db'
 import { validateBody, formatZodErrors } from '@/lib/api-validation'
 import { ContactStatus } from '@/types'
@@ -9,18 +8,16 @@ import { normalizePhoneNumber } from '@/lib/phone-formatter'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const SupabaseWebhookSchema = z.object({
-  type: z.string(),
-  table: z.string(),
-  record: z.object({
-    lead_id: z.string().uuid(),
-    tag_id: z.string().uuid(),
-  }),
+const TagWebhookSchema = z.object({
+  lead_name: z.string().min(1),
+  lead_phone: z.string().min(1),
+  lead_email: z.string().email().optional().nullable(),
+  tag_name: z.string().min(1),
 })
 
 /**
  * POST /api/crm-sync/tag
- * Recebe webhook do Supabase (INSERT em crm_lead_tags) e sincroniza a tag no SmartZap.
+ * Recebe webhook do LeadBox (trigger Postgres) com dados do lead e tag já resolvidos.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const validation = validateBody(SupabaseWebhookSchema, body)
+    const validation = validateBody(TagWebhookSchema, body)
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Dados inválidos', details: formatZodErrors(validation.error) },
@@ -43,47 +40,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { lead_id, tag_id } = validation.data.record
+    const { lead_name, lead_phone, lead_email, tag_name } = validation.data
 
-    const leadboxUrl = process.env.LEADBOX_SUPABASE_URL
-    const leadboxKey = process.env.LEADBOX_SUPABASE_KEY
-
-    if (!leadboxUrl || !leadboxKey) {
-      console.error('[crm-sync/tag] LEADBOX_SUPABASE_URL ou LEADBOX_SUPABASE_KEY não configurados')
-      return NextResponse.json({ error: 'Integração LeadBox não configurada' }, { status: 503 })
-    }
-
-    const leadbox = createClient(leadboxUrl, leadboxKey)
-
-    const [{ data: lead, error: leadError }, { data: tag, error: tagError }] = await Promise.all([
-      leadbox.from('crm_leads').select('name, email, phone').eq('id', lead_id).single(),
-      leadbox.from('crm_tags').select('name').eq('id', tag_id).single(),
-    ])
-
-    if (leadError || !lead) {
-      console.error('[crm-sync/tag] leadError:', leadError)
-      return NextResponse.json({ error: 'Lead não encontrado no LeadBox', lead_id, details: leadError?.message }, { status: 404 })
-    }
-
-    if (tagError || !tag) {
-      console.error('[crm-sync/tag] tagError:', tagError)
-      return NextResponse.json({ error: 'Tag não encontrada no LeadBox', tag_id, details: tagError?.message }, { status: 404 })
-    }
-
-    const normalized = normalizePhoneNumber(lead.phone)
+    const normalized = normalizePhoneNumber(lead_phone)
     if (!normalized) {
-      return NextResponse.json({ error: 'Número de telefone inválido', phone: lead.phone }, { status: 422 })
+      return NextResponse.json({ error: 'Número de telefone inválido', phone: lead_phone }, { status: 422 })
     }
 
     const contact = await contactDb.upsertMergeTagsByPhone(
       {
-        name: lead.name,
+        name: lead_name,
         phone: normalized,
-        email: lead.email ?? undefined,
+        email: lead_email ?? undefined,
         status: ContactStatus.OPT_IN,
         tags: [],
       },
-      [tag.name]
+      [tag_name]
     )
 
     return NextResponse.json({ ok: true, contact }, { status: 200 })
