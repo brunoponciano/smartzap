@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const validation = validateBody(LeadBoxWebhookSchema, body)
+    // Supabase Database Webhooks encapsulam o payload em { record: { ... } }
+    const payload = body?.record ?? body
+
+    const validation = validateBody(LeadBoxWebhookSchema, payload)
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Dados inválidos', details: formatZodErrors(validation.error) },
