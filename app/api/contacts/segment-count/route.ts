@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase'
 import { getBrazilUfFromPhone } from '@/lib/br-geo'
 import { normalizePhoneNumber } from '@/lib/phone-formatter'
 import { requireSessionOrApiKey } from '@/lib/request-auth'
+import { decodeSegment, isSegmentFilterEmpty } from '@/types/segment-filter'
+import { applySegmentFilter } from '@/lib/contacts/build-segment-query'
 
 const parseList = (value: string | null): string[] => {
   if (!value) return []
@@ -40,43 +42,41 @@ export async function GET(request: Request) {
     const countries = parseList(url.searchParams.get('countries'))
     const states = parseList(url.searchParams.get('states'))
     const combine = (url.searchParams.get('combine') || 'or').toLowerCase() === 'and' ? 'and' : 'or'
+    const segmentParam = url.searchParams.get('segment')
 
     const hasLocationFilters = countries.length > 0 || states.length > 0
     const safeExcludeTags = excludeTags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0 && t.length <= 100)
 
-    // Construir query base com filtro de tags no SQL
-    // Usa operador JSONB cs (@>) do PostgreSQL.
-    // Nota: && (ov) não funciona em colunas JSONB — apenas em arrays nativos (text[]).
-    // Para OR: múltiplos @> combinados via .or()
     let query = supabase
       .from('contacts')
       .select('phone,tags,status', { count: 'exact' })
       .neq('status', 'opt_out')
 
-    // Sanitiza tags: remove espaços extras e descarta strings vazias ou muito longas.
-    // A segurança contra injeção é garantida pelo JSON.stringify nas queries PostgREST.
-    const safeTags = tags.map(tag => tag.trim()).filter(tag => tag.length > 0 && tag.length <= 100)
-
-    // Em modo AND, filtro de tags no SQL é seguro (reduz dataset).
-    // Em modo OR com localização, NÃO filtra tags no SQL — senão elimina contatos
-    // que matcham apenas localização. O filtro de tag é feito in-memory junto com os demais.
-    const applyTagFilterInSql = safeTags.length > 0 && (combine === 'and' || !hasLocationFilters)
-    if (applyTagFilterInSql) {
-      if (combine === 'and') {
-        query = query.filter('tags', 'cs', JSON.stringify(safeTags))
-      } else {
-        const orConditions = safeTags
-          .map((tag) => `tags.cs.${JSON.stringify([tag])}`)
-          .join(',')
-        query = query.or(orConditions)
+    let applyTagFilterInSql = false
+    let safeTags: string[] = []
+    if (segmentParam) {
+      const segmentFilter = decodeSegment(segmentParam)
+      if (!isSegmentFilterEmpty(segmentFilter)) {
+        query = applySegmentFilter(query, segmentFilter)
+        applyTagFilterInSql = true
       }
-    }
-
-    // Exclusão de tags no SQL: remove contatos que tenham qualquer tag excluída.
-    // Usa NOT @> (não contém) para cada tag — aplicado antes do limite de linhas.
-    if (safeExcludeTags.length > 0 && !hasLocationFilters) {
-      for (const tag of safeExcludeTags) {
-        query = query.not('tags', 'cs', JSON.stringify([tag]))
+    } else {
+      safeTags = tags.map(tag => tag.trim()).filter(tag => tag.length > 0 && tag.length <= 100)
+      applyTagFilterInSql = safeTags.length > 0 && (combine === 'and' || !hasLocationFilters)
+      if (applyTagFilterInSql) {
+        if (combine === 'and') {
+          query = query.filter('tags', 'cs', JSON.stringify(safeTags))
+        } else {
+          const orConditions = safeTags
+            .map((tag) => `tags.cs.${JSON.stringify([tag])}`)
+            .join(',')
+          query = query.or(orConditions)
+        }
+      }
+      if (safeExcludeTags.length > 0 && !hasLocationFilters) {
+        for (const tag of safeExcludeTags) {
+          query = query.not('tags', 'cs', JSON.stringify([tag]))
+        }
       }
     }
 

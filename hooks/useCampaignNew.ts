@@ -15,6 +15,9 @@ import { humanizePrecheckReason, humanizeVarSource, type ContactFixFocus, type C
 import { getPricingBreakdown } from '@/lib/whatsapp-pricing'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useCampaignFolders } from '@/hooks/useCampaignFolders'
+import { useAtomValue } from 'jotai'
+import { segmentFilterAtom } from '@/atoms/contact-filters'
+import { encodeSegment } from '@/types/segment-filter'
 
 // ── Constants ──────────────────────────────────────────────────────────
 const MAX_TAG_CHIPS = 10
@@ -156,11 +159,8 @@ export const useCampaignNewController = () => {
   const preselectedTemplateName = searchParams?.get('templateName') || null
   const [step, setStep] = useState(1)
   const [audienceMode, setAudienceMode] = useState('todos')
-  const [combineMode, setCombineMode] = useState('or')
   const [collapseAudienceChoice, setCollapseAudienceChoice] = useState(false)
   const [collapseQuickSegments, setCollapseQuickSegments] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [excludedTags, setExcludedTags] = useState<string[]>([])
   const [selectedCountries, setSelectedCountries] = useState<string[]>([])
   const [selectedStates, setSelectedStates] = useState<string[]>([])
   const [testContactSearch, setTestContactSearch] = useState('')
@@ -221,12 +221,7 @@ export const useCampaignNewController = () => {
   const [stateSearch, setStateSearch] = useState('')
   const { rate: exchangeRate, hasRate } = useExchangeRate()
   const { folders, isLoading: isFoldersLoading } = useCampaignFolders()
-
-  useEffect(() => {
-    if (combineMode !== 'and') return
-    setSelectedCountries((prev) => (prev.length > 1 ? [prev[prev.length - 1]] : prev))
-    setSelectedStates((prev) => (prev.length > 1 ? [prev[prev.length - 1]] : prev))
-  }, [combineMode])
+  const segmentFilter = useAtomValue(segmentFilterAtom)
 
   useEffect(() => {
     if (!selectedStates.length) return
@@ -304,12 +299,10 @@ export const useCampaignNewController = () => {
   })
 
   const segmentCountQuery = useQuery({
-    queryKey: ['segment-count', combineMode, selectedTags, excludedTags, selectedCountries, selectedStates],
+    queryKey: ['segment-count', segmentFilter, selectedCountries, selectedStates],
     queryFn: async () => {
       const params = new URLSearchParams()
-      params.set('combine', combineMode)
-      if (selectedTags.length) params.set('tags', selectedTags.join(','))
-      if (excludedTags.length) params.set('excludeTags', excludedTags.join(','))
+      params.set('segment', encodeSegment(segmentFilter))
       if (selectedCountries.length) params.set('countries', selectedCountries.join(','))
       if (selectedStates.length) params.set('states', selectedStates.join(','))
       return fetchJson<{ total: number; matched: number }>(`/api/contacts/segment-count?${params.toString()}`)
@@ -636,29 +629,17 @@ export const useCampaignNewController = () => {
     const contacts = await fetchJson<Contact[]>('/api/contacts')
     if (audienceMode === 'todos') return contacts
 
-    if (!selectedTags.length && !excludedTags.length && !selectedCountries.length && !selectedStates.length) {
-      return contacts
-    }
+    if (!selectedCountries.length && !selectedStates.length) return contacts
 
     return contacts.filter((contact) => {
-      const contactTags = Array.isArray(contact.tags) ? contact.tags : []
       const phone = String(contact.phone || '')
       const country = selectedCountries.length ? resolveCountry(phone) : null
       const uf = selectedStates.length ? getBrazilUfFromPhone(phone) : null
-
-      // Exclusão: remove contato se tiver qualquer tag excluída
-      if (excludedTags.length && excludedTags.some((tag) => contactTags.includes(tag))) {
-        return false
-      }
-
-      const tagMatches = selectedTags.map((tag) => contactTags.includes(tag))
       const countryMatches = selectedCountries.map((code) => Boolean(country && country === code))
       const stateMatches = selectedStates.map((code) => Boolean(uf && uf === code))
-      const filters = [...tagMatches, ...countryMatches, ...stateMatches]
-
+      const filters = [...countryMatches, ...stateMatches]
       if (!filters.length) return true
-      const isMatch = combineMode === 'or' ? filters.some(Boolean) : filters.every(Boolean)
-      return isMatch
+      return filters.some(Boolean)
     })
   }
 
@@ -1091,9 +1072,7 @@ export const useCampaignNewController = () => {
     sendToSelected,
     selectedTestContact?.id,
     configuredContact?.id,
-    combineMode,
-    selectedTags.join(','),
-    excludedTags.join(','),
+    JSON.stringify(segmentFilter),
     selectedCountries.join(','),
     selectedStates.join(','),
     templateVars.header.map((item) => item.value).join('|'),
@@ -1371,11 +1350,6 @@ export const useCampaignNewController = () => {
       : precheckNeedsFix && !skipIgnored
         ? 'Bloqueado (validação pendente)'
         : 'A definir'
-  const combineModeLabel = combineMode === 'or' ? 'Mais alcance' : 'Mais preciso'
-  const combineFilters = [...selectedTags, ...selectedCountries, ...selectedStates]
-  const combinePreview = combineFilters.length
-    ? combineFilters.join(' • ')
-    : 'Nenhum filtro selecionado'
   const countryData = countriesQuery.data?.data || []
   const stateData = statesQuery.data?.data || []
   const allTags = tagCountsQuery.data?.data || []
@@ -1546,18 +1520,13 @@ export const useCampaignNewController = () => {
     // Audience
     audienceMode,
     setAudienceMode,
-    combineMode,
-    setCombineMode,
     collapseAudienceChoice,
     setCollapseAudienceChoice,
     collapseQuickSegments,
     setCollapseQuickSegments,
 
-    // Tags
-    selectedTags,
-    setSelectedTags,
-    excludedTags,
-    setExcludedTags,
+    // Tags (segment filter via Jotai atom)
+    segmentFilter,
     tagCountsQuery,
     tagChips,
     tagCounts,
@@ -1692,9 +1661,6 @@ export const useCampaignNewController = () => {
     footerSummary,
     scheduleLabel,
     scheduleSummaryLabel,
-    combineModeLabel,
-    combineFilters,
-    combinePreview,
 
     // Helpers
     toggleSelection,
