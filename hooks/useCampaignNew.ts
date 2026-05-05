@@ -299,7 +299,7 @@ export const useCampaignNewController = () => {
   })
 
   const segmentCountQuery = useQuery({
-    queryKey: ['segment-count', segmentFilter, selectedCountries, selectedStates],
+    queryKey: ['segment-count', JSON.stringify(segmentFilter), selectedCountries, selectedStates],
     queryFn: async () => {
       const params = new URLSearchParams()
       params.set('segment', encodeSegment(segmentFilter))
@@ -308,7 +308,7 @@ export const useCampaignNewController = () => {
       return fetchJson<{ total: number; matched: number }>(`/api/contacts/segment-count?${params.toString()}`)
     },
     enabled: audienceMode === 'segmentos',
-    staleTime: 10_000,
+    staleTime: 0,
   })
 
   const contactSearchResults = contactSearchQuery.data || []
