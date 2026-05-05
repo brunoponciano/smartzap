@@ -7,6 +7,8 @@ import {
   validateBody,
   formatZodErrors
 } from '@/lib/api-validation'
+import { parseSegmentParam } from '@/lib/contacts/segment-filter-schema'
+import { isSegmentFilterEmpty } from '@/types/segment-filter'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -26,13 +28,16 @@ export async function GET(request: Request) {
     const search = url.searchParams.get('search') || ''
     const status = url.searchParams.get('status') || ''
     const tag = url.searchParams.get('tag') || ''
+    const segment = url.searchParams.get('segment')
+    const segmentFilter = parseSegmentParam(segment)
 
     const wantsPaged =
       limitParam !== null ||
       offsetParam !== null ||
       search.length > 0 ||
       status.length > 0 ||
-      tag.length > 0
+      tag.length > 0 ||
+      !isSegmentFilterEmpty(segmentFilter)
 
     if (wantsPaged) {
       const limitRaw = Number(limitParam)
@@ -46,6 +51,7 @@ export async function GET(request: Request) {
         search,
         status,
         tag,
+        segmentFilter,
       })
 
       return NextResponse.json(

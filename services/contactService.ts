@@ -76,6 +76,15 @@ export const contactService = {
     return response.json();
   },
 
+  getTagsWithCount: async (): Promise<{ tag: string; count: number }[]> => {
+    const response = await fetch('/api/contacts/tag-counts', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error('Falha ao buscar contagem de tags');
+    }
+    const json = await response.json();
+    return json.data ?? [];
+  },
+
   list: async (params: ContactListParams): Promise<ContactListResult> => {
     const searchParams = new URLSearchParams();
     searchParams.set('limit', String(params.limit));

@@ -32,6 +32,8 @@ import {
 import { isSuppressionActive } from '@/lib/phone-suppressions'
 import { canonicalTemplateCategory } from '@/lib/template-category'
 import { normalizePhoneNumber, validatePhoneNumber } from '@/lib/phone-formatter'
+import { SegmentFilter, isSegmentFilterEmpty } from '@/types/segment-filter'
+import { applySegmentFilter } from '@/lib/contacts/build-segment-query'
 
 // Divide array em chunks de tamanho n para evitar 414 Request-URI Too Large
 // no PostgREST: .in('field', array) serializa todos os valores na URL.
@@ -597,6 +599,7 @@ export const contactDb = {
         search?: string | null
         status?: string | null
         tag?: string | null
+        segmentFilter?: SegmentFilter
     }): Promise<{ data: Contact[]; total: number }> => {
         const limit = Math.max(1, Math.min(100, Math.floor(params.limit || 10)))
         const offset = Math.max(0, Math.floor(params.offset || 0))
@@ -662,7 +665,9 @@ export const contactDb = {
             query = query.or(buildContactSearchOr(search))
         }
 
-        if (tag && tag !== 'ALL') {
+        if (params.segmentFilter && !isSegmentFilterEmpty(params.segmentFilter)) {
+            query = applySegmentFilter(query, params.segmentFilter)
+        } else if (tag && tag !== 'ALL') {
             if (tag === 'NONE' || tag === '__NO_TAGS__') {
                 query = query.or('tags.is.null,tags.eq.[]')
             } else {
@@ -1459,6 +1464,18 @@ export const contactDb = {
             }
         }
         return []
+    },
+
+    getTagsWithCount: async (): Promise<{ tag: string; count: number }[]> => {
+        const { data, error } = await supabase.rpc('get_contact_tag_counts')
+        if (error) {
+            console.error('Failed to get contact tag counts:', error)
+            throw error
+        }
+        return (data ?? []).map((row: { tag: string; count: number }) => ({
+            tag: row.tag,
+            count: Number(row.count),
+        }))
     },
 
     getStats: async () => {

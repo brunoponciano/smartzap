@@ -7,7 +7,9 @@ export interface AudienceCriteria {
   status: 'OPT_IN' | 'OPT_OUT' | 'UNKNOWN' | 'ALL';
   includeTag?: string | null;
   includeTags?: string[];
+  includeTagsOperator?: 'AND' | 'OR';
   excludeTags?: string[];
+  excludeTagsOperator?: 'AND' | 'OR';
   createdWithinDays?: number | null;
   excludeOptOut?: boolean;
   noTags?: boolean;
@@ -76,7 +78,7 @@ export interface StepAudienceSelectionProps {
 
   // Audience actions
   selectAudiencePreset?: (preset: NonNullable<AudiencePreset>) => void;
-  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>) => void;
+  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>, segmentFilter?: import('@/types/segment-filter').SegmentFilter) => void;
 
   // Limits
   currentLimit: number;
@@ -161,7 +163,7 @@ export interface SegmentsSheetProps {
   setSegmentOneContactDraft: (value: string) => void;
   
   // Actions
-  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>) => void;
+  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>, segmentFilter?: import('@/types/segment-filter').SegmentFilter) => void;
   onClose: () => void;
   onOpenRefine: () => void;
   onPickOneContact: (contactId: string, prefillSearch?: string) => void;
@@ -171,7 +173,7 @@ export interface RefineSheetProps {
   audienceDraft: AudienceDraft;
   setAudienceDraft: (value: AudienceDraft | ((prev: AudienceDraft) => AudienceDraft)) => void;
   audienceCriteria?: AudienceCriteria;
-  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>) => void;
+  applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: NonNullable<AudiencePreset>, segmentFilter?: import('@/types/segment-filter').SegmentFilter) => void;
   recipientSource: 'all' | 'specific' | 'test' | null;
   onClose: () => void;
   onOpenSegments: () => void;

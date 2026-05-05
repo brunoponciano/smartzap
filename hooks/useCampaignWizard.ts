@@ -16,6 +16,7 @@ import {
   type AudienceCriteria,
   type AudiencePresetId,
 } from '@/lib/business/audience';
+import { SegmentFilter, isSegmentFilterEmpty } from '@/types/segment-filter';
 import { getTemplateVariableInfo } from '@/lib/business/template';
 import {
   wizardReducer,
@@ -346,14 +347,28 @@ export const useCampaignWizardController = () => {
 
   // Use pure function from business logic for criteria filtering
   // Uses batch action to update all audience state in one dispatch (reduces re-renders)
-  const applyAudienceCriteria = useCallback((criteria: AudienceCriteria, preset?: AudiencePresetId) => {
-    const ids = getContactIdsByCriteria(allContacts, criteria, suppressedPhones);
+  const applyAudienceCriteria = useCallback((
+    criteria: AudienceCriteria,
+    preset?: AudiencePresetId,
+    segmentFilter?: SegmentFilter,
+  ) => {
+    let resolvedCriteria = criteria;
+    if (segmentFilter && !isSegmentFilterEmpty(segmentFilter)) {
+      resolvedCriteria = {
+        ...criteria,
+        includeTags: segmentFilter.include.conditions.map((c) => c.tag),
+        includeTagsOperator: segmentFilter.include.operator,
+        excludeTags: segmentFilter.exclude.conditions.map((c) => c.tag),
+        excludeTagsOperator: segmentFilter.exclude.operator,
+      };
+    }
+    const ids = getContactIdsByCriteria(allContacts, resolvedCriteria, suppressedPhones);
     dispatchAudience({
       type: 'APPLY_PRESET',
       payload: {
         source: 'specific',
         preset: preset ?? 'manual',
-        criteria,
+        criteria: resolvedCriteria,
         selectedIds: ids,
       },
     });

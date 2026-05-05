@@ -52,8 +52,12 @@ export interface AudienceCriteria {
   includeTag?: string | null
   /** Include contacts that have at least one of these tags (OR logic). Takes priority over includeTag. */
   includeTags?: string[]
+  /** Operator for includeTags: 'AND' requires all tags, 'OR' requires any (default OR) */
+  includeTagsOperator?: 'AND' | 'OR'
   /** Exclude contacts that have any of these tags (OR logic). Applied after inclusion filter. */
   excludeTags?: string[]
+  /** Operator for excludeTags: 'AND' excludes only if contact has all tags, 'OR' excludes if any (default OR) */
+  excludeTagsOperator?: 'AND' | 'OR'
   /** Include only contacts created within N days */
   createdWithinDays?: number | null
   /** Exclude opted-out contacts (always true in practice) */
@@ -224,8 +228,10 @@ export function isContactEligible(
   if (includeTags.length > 0) {
     const normalizedInclude = includeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
     if (normalizedInclude.length > 0) {
-      const hasAny = tagsLower.some((t) => normalizedInclude.includes(t))
-      if (!hasAny) {
+      const passes = criteria.includeTagsOperator === 'AND'
+        ? normalizedInclude.every((t) => tagsLower.includes(t))
+        : tagsLower.some((t) => normalizedInclude.includes(t))
+      if (!passes) {
         return { eligible: false, reason: 'MISSING_TAG' }
       }
     }
@@ -245,8 +251,10 @@ export function isContactEligible(
   if (excludeTags.length > 0) {
     const normalizedExclude = excludeTags.map((t) => String(t || '').trim().toLowerCase()).filter(Boolean)
     if (normalizedExclude.length > 0) {
-      const hasExcluded = tagsLower.some((t) => normalizedExclude.includes(t))
-      if (hasExcluded) {
+      const excluded = criteria.excludeTagsOperator === 'AND'
+        ? normalizedExclude.every((t) => tagsLower.includes(t))
+        : tagsLower.some((t) => normalizedExclude.includes(t))
+      if (excluded) {
         return { eligible: false, reason: 'EXCLUDED_TAG' }
       }
     }

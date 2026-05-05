@@ -1,11 +1,15 @@
 'use client';
 
 import React from 'react';
-import { X, PlusCircle, MinusCircle } from 'lucide-react';
+import { X } from 'lucide-react';
+import { useAtomValue } from 'jotai';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ContactStatus } from '@/types';
 import { formatPhoneNumberDisplay } from '@/lib/phone-formatter';
+import { segmentFilterAtom } from '@/atoms/contact-filters';
+import { isSegmentFilterEmpty } from '@/types/segment-filter';
+import { SegmentFilterBuilder } from '@/components/features/contacts/list/segment-filter/SegmentFilterBuilder';
 import { SegmentsSheetProps, AudienceCriteria } from './types';
 
 export function SegmentsSheet({
@@ -14,8 +18,6 @@ export function SegmentsSheet({
   customFields,
   allContacts,
   recipientSource,
-  segmentTagDraft,
-  setSegmentTagDraft,
   segmentDdiDraft,
   setSegmentDdiDraft,
   segmentCustomFieldKeyDraft,
@@ -32,18 +34,13 @@ export function SegmentsSheet({
   onPickOneContact,
 }: SegmentsSheetProps) {
   const isDisabled = recipientSource === 'test';
+  const segmentFilter = useAtomValue(segmentFilterAtom);
 
-  const currentIncludeTags: string[] = audienceCriteria?.includeTags ?? [];
-  const currentExcludeTags: string[] = audienceCriteria?.excludeTags ?? [];
-
-  const buildUpdatedCriteria = (
-    newIncludeTags: string[],
-    newExcludeTags: string[]
-  ): AudienceCriteria => ({
+  const baseCriteria = (): AudienceCriteria => ({
     status: audienceCriteria?.status ?? 'ALL',
     includeTag: null,
-    includeTags: newIncludeTags,
-    excludeTags: newExcludeTags,
+    includeTags: [],
+    excludeTags: [],
     createdWithinDays: audienceCriteria?.createdWithinDays ?? null,
     excludeOptOut: true,
     noTags: false,
@@ -54,65 +51,19 @@ export function SegmentsSheet({
     customFieldValue: null,
   });
 
-  const toggleIncludeTag = (tag: string) => {
-    const normalized = tag.trim().toLowerCase();
-    const already = currentIncludeTags.map((t) => t.toLowerCase()).includes(normalized);
-    const newInclude = already
-      ? currentIncludeTags.filter((t) => t.toLowerCase() !== normalized)
-      : [...currentIncludeTags, tag.trim()];
-    const newExclude = currentExcludeTags.filter((t) => t.toLowerCase() !== normalized);
-    applyAudienceCriteria?.(buildUpdatedCriteria(newInclude, newExclude), 'manual');
-  };
-
-  const toggleExcludeTag = (tag: string) => {
-    const normalized = tag.trim().toLowerCase();
-    const already = currentExcludeTags.map((t) => t.toLowerCase()).includes(normalized);
-    const newExclude = already
-      ? currentExcludeTags.filter((t) => t.toLowerCase() !== normalized)
-      : [...currentExcludeTags, tag.trim()];
-    const newInclude = currentIncludeTags.filter((t) => t.toLowerCase() !== normalized);
-    applyAudienceCriteria?.(buildUpdatedCriteria(newInclude, newExclude), 'manual');
+  const handleApplySegment = () => {
+    if (isSegmentFilterEmpty(segmentFilter)) return;
+    applyAudienceCriteria?.(baseCriteria(), 'manual', segmentFilter);
+    onClose();
   };
 
   const handleApplyDdi = (ddi: string) => {
-    applyAudienceCriteria?.(
-      {
-        status: audienceCriteria?.status ?? 'ALL',
-        includeTag: null,
-        includeTags: currentIncludeTags,
-        excludeTags: currentExcludeTags,
-        createdWithinDays: audienceCriteria?.createdWithinDays ?? null,
-        excludeOptOut: true,
-        noTags: false,
-        uf: null,
-        ddi: String(ddi),
-        customFieldKey: null,
-        customFieldMode: null,
-        customFieldValue: null,
-      },
-      'manual'
-    );
+    applyAudienceCriteria?.({ ...baseCriteria(), ddi: String(ddi) }, 'manual');
     onClose();
   };
 
   const handleApplyUf = (uf: string) => {
-    applyAudienceCriteria?.(
-      {
-        status: audienceCriteria?.status ?? 'ALL',
-        includeTag: null,
-        includeTags: currentIncludeTags,
-        excludeTags: currentExcludeTags,
-        createdWithinDays: audienceCriteria?.createdWithinDays ?? null,
-        excludeOptOut: true,
-        noTags: false,
-        uf,
-        ddi: null,
-        customFieldKey: null,
-        customFieldMode: null,
-        customFieldValue: null,
-      },
-      'manual'
-    );
+    applyAudienceCriteria?.({ ...baseCriteria(), uf }, 'manual');
     onClose();
   };
 
@@ -121,15 +72,7 @@ export function SegmentsSheet({
     if (!key) return;
     applyAudienceCriteria?.(
       {
-        status: audienceCriteria?.status ?? 'ALL',
-        includeTag: null,
-        includeTags: currentIncludeTags,
-        excludeTags: currentExcludeTags,
-        createdWithinDays: audienceCriteria?.createdWithinDays ?? null,
-        excludeOptOut: true,
-        noTags: false,
-        uf: null,
-        ddi: null,
+        ...baseCriteria(),
         customFieldKey: key,
         customFieldMode: segmentCustomFieldModeDraft,
         customFieldValue:
@@ -142,14 +85,6 @@ export function SegmentsSheet({
     onClose();
   };
 
-  const filteredTags = (audienceStats?.tagCountsEligible ?? [])
-    .filter(({ tag }) => {
-      const q = (segmentTagDraft || '').trim().toLowerCase();
-      if (!q) return true;
-      return String(tag || '').toLowerCase().includes(q);
-    })
-    .slice(0, 50);
-
   const filteredContacts = allContacts
     .filter((c) => c.status !== ContactStatus.OPT_OUT)
     .filter((c) => {
@@ -160,9 +95,6 @@ export function SegmentsSheet({
       return name.includes(q) || phone.includes(q) || email.includes(q);
     })
     .slice(0, 8);
-
-  const includeSet = new Set(currentIncludeTags.map((t) => t.toLowerCase()));
-  const excludeSet = new Set(currentExcludeTags.map((t) => t.toLowerCase()));
 
   return (
     <div className="bg-[var(--ds-bg-elevated)] border border-[var(--ds-border-default)] rounded-2xl p-5 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -184,140 +116,22 @@ export function SegmentsSheet({
       </div>
 
       <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tags */}
+        {/* Tags — SegmentFilterBuilder */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-bold text-[var(--ds-text-muted)] uppercase tracking-wider">
-              Tags
-            </p>
-            <button
-              type="button"
-              className="text-xs text-[var(--ds-text-secondary)] hover:text-[var(--ds-text-primary)] transition-colors"
-              onClick={() => setSegmentTagDraft('')}
-              disabled={isDisabled}
-            >
-              Limpar busca
-            </button>
-          </div>
-
-          {(currentIncludeTags.length > 0 || currentExcludeTags.length > 0) && (
-            <div className="flex flex-wrap gap-1.5">
-              {currentIncludeTags.map((tag) => (
-                <span
-                  key={`inc-${tag}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-900/40 border border-emerald-700/50 text-emerald-300"
-                >
-                  <PlusCircle size={10} />
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => toggleIncludeTag(tag)}
-                    className="ml-0.5 hover:text-white"
-                    disabled={isDisabled}
-                    aria-label={`Remover tag incluída ${tag}`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-              {currentExcludeTags.map((tag) => (
-                <span
-                  key={`exc-${tag}`}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-orange-900/40 border border-orange-700/50 text-orange-300"
-                >
-                  <MinusCircle size={10} />
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => toggleExcludeTag(tag)}
-                    className="ml-0.5 hover:text-white"
-                    disabled={isDisabled}
-                    aria-label={`Remover tag excluída ${tag}`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          <Input
-            value={segmentTagDraft}
-            onChange={(e) => setSegmentTagDraft(e.target.value)}
-            placeholder="Buscar tag…"
-            className="bg-[var(--ds-bg-elevated)] border-[var(--ds-border-default)] text-[var(--ds-text-primary)] placeholder:text-[var(--ds-text-muted)]"
-            disabled={isDisabled}
-          />
-
-          <div className="max-h-56 overflow-auto rounded-xl border border-[var(--ds-border-default)] bg-[var(--ds-bg-surface)]">
-            {filteredTags.map(({ tag, count }) => {
-              const tagStr = String(tag);
-              const tagLower = tagStr.toLowerCase();
-              const isIncluded = includeSet.has(tagLower);
-              const isExcluded = excludeSet.has(tagLower);
-
-              return (
-                <div
-                  key={tagStr}
-                  className={`w-full px-3 py-2 flex items-center justify-between text-sm transition-colors ${
-                    isIncluded
-                      ? 'bg-emerald-900/20 border-l-2 border-emerald-600'
-                      : isExcluded
-                      ? 'bg-orange-900/20 border-l-2 border-orange-600'
-                      : 'hover:bg-[var(--ds-bg-hover)]'
-                  }`}
-                >
-                  <span className="truncate pr-2 text-[var(--ds-text-secondary)]">{tagStr}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-[var(--ds-text-secondary)]">{count}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleIncludeTag(tagStr)}
-                      disabled={isDisabled}
-                      title="Incluir contatos com esta tag"
-                      aria-label={`Incluir tag ${tagStr}`}
-                      className={`p-1 rounded transition-colors ${
-                        isIncluded
-                          ? 'text-emerald-400 hover:text-emerald-300'
-                          : 'text-[var(--ds-text-muted)] hover:text-emerald-400'
-                      }`}
-                    >
-                      <PlusCircle size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleExcludeTag(tagStr)}
-                      disabled={isDisabled}
-                      title="Excluir contatos com esta tag"
-                      aria-label={`Excluir tag ${tagStr}`}
-                      className={`p-1 rounded transition-colors ${
-                        isExcluded
-                          ? 'text-orange-400 hover:text-orange-300'
-                          : 'text-[var(--ds-text-muted)] hover:text-orange-400'
-                      }`}
-                    >
-                      <MinusCircle size={14} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {(audienceStats?.tagCountsEligible?.length ?? 0) === 0 && (
-              <div className="px-3 py-3 text-xs text-[var(--ds-text-muted)]">
-                Nenhuma tag encontrada.
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-3 text-xs text-[var(--ds-text-muted)]">
-            <span className="flex items-center gap-1">
-              <PlusCircle size={10} className="text-emerald-500" /> Incluir
-            </span>
-            <span className="flex items-center gap-1">
-              <MinusCircle size={10} className="text-orange-500" /> Excluir
-            </span>
-          </div>
+          <p className="text-xs font-bold text-[var(--ds-text-muted)] uppercase tracking-wider">
+            Tags
+          </p>
+          <fieldset disabled={isDisabled} className="contents">
+            <SegmentFilterBuilder />
+          </fieldset>
+          <Button
+            type="button"
+            className="w-full bg-primary-600 text-white hover:bg-primary-500"
+            disabled={isDisabled || isSegmentFilterEmpty(segmentFilter)}
+            onClick={handleApplySegment}
+          >
+            Aplicar segmento
+          </Button>
         </div>
 
         {/* DDI/UF/Custom Fields */}
