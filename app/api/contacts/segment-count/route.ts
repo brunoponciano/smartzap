@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     // Sem filtros de localização: count do SQL é preciso e sem limite de linhas
     if (!hasLocationFilters) {
       const matched = sqlCount ?? contacts.length
-      return NextResponse.json({ total: matched, matched })
+      return NextResponse.json({ total: matched, matched }, { headers: { 'x-debug-segment': segmentParam ?? 'empty' } })
     }
 
     // Com filtros de localização: filtrar em memória sobre subconjunto filtrado por tag
