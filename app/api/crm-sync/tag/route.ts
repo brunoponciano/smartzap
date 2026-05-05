@@ -61,11 +61,13 @@ export async function POST(request: NextRequest) {
     ])
 
     if (leadError || !lead) {
-      return NextResponse.json({ error: 'Lead não encontrado no LeadBox', lead_id }, { status: 404 })
+      console.error('[crm-sync/tag] leadError:', leadError)
+      return NextResponse.json({ error: 'Lead não encontrado no LeadBox', lead_id, details: leadError?.message }, { status: 404 })
     }
 
     if (tagError || !tag) {
-      return NextResponse.json({ error: 'Tag não encontrada no LeadBox', tag_id }, { status: 404 })
+      console.error('[crm-sync/tag] tagError:', tagError)
+      return NextResponse.json({ error: 'Tag não encontrada no LeadBox', tag_id, details: tagError?.message }, { status: 404 })
     }
 
     const normalized = normalizePhoneNumber(lead.phone)
