@@ -34,6 +34,7 @@ const PUBLIC_API_ROUTES = [
     '/api/inbox',               // Conversas/mensagens usadas pelo PWA de atendimento
     '/api/push/subscribe',      // Registrar dispositivo para push — PWA
     '/api/push/unsubscribe',    // Remover dispositivo de push — PWA
+    '/api/crm-sync',            // Webhook LeadBox — autenticado por x-sync-secret
 ]
 
 export async function proxy(request: NextRequest) {
