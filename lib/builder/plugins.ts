@@ -450,6 +450,54 @@ const integrations: IntegrationPlugin[] = [
       },
     ],
   },
+  {
+    type: "zapi",
+    label: "Z-API",
+    description: "Enviar mensagens via Z-API (número pessoal)",
+    actions: [
+      {
+        slug: "send-message",
+        label: "Enviar via Z-API",
+        description:
+          "Envia mensagem de texto livre via Z-API (número pessoal, sem template)",
+        category: "Z-API",
+        stepFunction: "zapiSendMessageStep",
+        stepImportPath: "zapi/send-message",
+        configFields: [
+          {
+            key: "instanceId",
+            label: "ID da instância",
+            type: "template-input",
+            placeholder: "ex: 3D5AB3C4E6F1",
+            required: true,
+          },
+          {
+            key: "token",
+            label: "Token da instância",
+            type: "template-input",
+            placeholder: "ex: F1E2D3C4B5A6...",
+            required: true,
+          },
+          {
+            key: "phone",
+            label: "Telefone destino",
+            type: "template-input",
+            placeholder: "+5511999999999",
+            required: true,
+          },
+          {
+            key: "message",
+            label: "Mensagem",
+            type: "template-textarea",
+            placeholder: "Digite a mensagem a ser enviada...",
+            rows: 4,
+            required: true,
+          },
+        ],
+        outputFields: [{ field: "data", description: "Resposta da Z-API" }],
+      },
+    ],
+  },
 ];
 
 function getSafeIntegrations(): IntegrationPlugin[] {
