@@ -14,6 +14,8 @@ export async function syncToLeadBox({ action, phone, tag }: SyncParams): Promise
   const webhookUrl = process.env.LEADBOX_WEBHOOK_URL
   const secret = process.env.LEADBOX_SYNC_SECRET
 
+  console.log(`[leadbox-sync] webhookUrl=${webhookUrl ?? '(não configurada)'} secret=${secret ? 'presente' : '(não configurado)'}`)
+
   if (!webhookUrl || !secret) return
 
   // LeadBox não aceita o "+" no telefone
@@ -31,6 +33,8 @@ export async function syncToLeadBox({ action, phone, tag }: SyncParams): Promise
       },
       body: JSON.stringify(payload),
     })
+
+    console.log(`[leadbox-sync] fetch concluído: status=${res.status} action=${action} phone=${normalizedPhone}`)
 
     if (!res.ok) {
       console.warn(`[leadbox-sync] LeadBox retornou status não-ok: ${res.status} (action=${action}, phone=${normalizedPhone})`)
