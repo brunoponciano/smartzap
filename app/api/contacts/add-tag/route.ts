@@ -84,31 +84,23 @@ export async function POST(request: NextRequest) {
         started_at: new Date().toISOString(),
       });
 
-      // Executa de forma assíncrona para não prender o request
-      executeWorkflowDirect({
-        workflowId: workflow.workflow_id,
-        phone: String(contact.phone || ""),
-        triggerInput: { contact, tag: tagNormalized, source: "add-tag-api" },
-      })
-        .then(async () => {
-          await admin
-            .from("workflow_runs")
-            .update({
-              status: "success",
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", executionId);
-        })
-        .catch(async (err) => {
-          console.error(`Falha ao executar workflow ${workflow.workflow_id}:`, err);
-          await admin
-            .from("workflow_runs")
-            .update({
-              status: "failed",
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", executionId);
+      try {
+        await executeWorkflowDirect({
+          workflowId: workflow.workflow_id,
+          phone: String(contact.phone || ""),
+          triggerInput: { contact, tag: tagNormalized, source: "add-tag-api" },
         });
+        await admin
+          .from("workflow_runs")
+          .update({ status: "success", completed_at: new Date().toISOString() })
+          .eq("id", executionId);
+      } catch (err) {
+        console.error(`Falha ao executar workflow ${workflow.workflow_id}:`, err);
+        await admin
+          .from("workflow_runs")
+          .update({ status: "failed", completed_at: new Date().toISOString() })
+          .eq("id", executionId);
+      }
 
       executions.push({ workflowId: workflow.workflow_id, executionId });
     }
