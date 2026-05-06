@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       [tagNormalized]
     );
 
+    console.log('[add-tag] chamando syncToLeadBox phone=', normalizedPhone, 'tag=', tagNormalized)
     syncToLeadBox({ action: 'add_tag', phone: normalizedPhone, tag: tagNormalized }).catch(() => {})
 
     const admin = getSupabaseAdmin();
