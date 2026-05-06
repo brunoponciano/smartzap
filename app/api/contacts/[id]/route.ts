@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { contactDb } from '@/lib/supabase-db'
 import { requireSessionOrApiKey } from '@/lib/request-auth'
+import { syncToLeadBox } from '@/lib/leadbox-sync'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -81,7 +82,11 @@ export async function DELETE(request: Request, { params }: Params) {
     if (auth) return auth
 
     const { id } = await params
+    const contact = await contactDb.getById(id)
     await contactDb.delete(id)
+    if (contact?.phone) {
+      syncToLeadBox({ action: 'delete_contact', phone: contact.phone }).catch(() => {})
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete contact:', error)

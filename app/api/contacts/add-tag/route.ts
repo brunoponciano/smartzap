@@ -6,6 +6,7 @@ import { requireSessionOrApiKey } from "@/lib/request-auth";
 import { executeWorkflowDirect } from "@/lib/builder/workflow-executor-direct";
 import { nanoid } from "nanoid";
 import { normalizePhoneNumber } from "@/lib/phone-formatter";
+import { syncToLeadBox } from "@/lib/leadbox-sync";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
       },
       [tagNormalized]
     );
+
+    syncToLeadBox({ action: 'add_tag', phone: normalizedPhone, tag: tagNormalized }).catch(() => {})
 
     const admin = getSupabaseAdmin();
     if (!admin) {

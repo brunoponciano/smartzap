@@ -28,6 +28,7 @@ import {
 } from '@/lib/whatsapp-status-events'
 
 import { shouldProcessWhatsAppStatusEvent } from '@/lib/whatsapp-webhook-dedupe'
+import { syncToLeadBox } from '@/lib/leadbox-sync'
 
 
 import { getWhatsAppCredentials } from '@/lib/whatsapp-credentials'
@@ -1057,6 +1058,7 @@ export async function POST(request: NextRequest) {
                       p_tags_to_remove: [],
                     })
                     console.log(`🏷️ Tag "${matchedReply.tag}" aplicada aos contatos ${ids.join(', ')} (from: ${from})`)
+                    syncToLeadBox({ action: 'add_tag', phone: from, tag: matchedReply.tag }).catch(() => {})
 
                     // Dispara workflows com gatilho "Tag Adicionada"
                     const { data: versions } = await supabaseAdmin

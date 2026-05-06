@@ -3,6 +3,7 @@ import { leadFormDb, contactDb } from '@/lib/supabase-db'
 import { SubmitLeadFormSchema, validateBody, formatZodErrors } from '@/lib/api-validation'
 import { processPhoneNumber } from '@/lib/phone-formatter'
 import { ContactStatus } from '@/types'
+import { syncToLeadBox } from '@/lib/leadbox-sync'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -136,6 +137,8 @@ export async function POST(request: Request, { params }: Params) {
       },
       [form.tag]
     )
+
+    syncToLeadBox({ action: 'add_tag', phone: normalized, tag: form.tag }).catch(() => {})
 
     return NextResponse.json(
       {
