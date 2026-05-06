@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { contactDb } from '@/lib/supabase-db'
 import { requireSessionOrApiKey } from '@/lib/request-auth'
 import { syncToLeadBox } from '@/lib/leadbox-sync'
+import { waitUntil } from '@vercel/functions'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -65,9 +66,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const phone = contact.phone || body.phone
     if (phone && Array.isArray(body.tags)) {
-      for (const tag of body.tags) {
-        syncToLeadBox({ action: 'add_tag', phone, tag }).catch(() => {})
-      }
+      waitUntil(
+        Promise.all(body.tags.map((tag: string) =>
+          syncToLeadBox({ action: 'add_tag', phone, tag })
+        ))
+      )
     }
 
     return NextResponse.json(contact)
