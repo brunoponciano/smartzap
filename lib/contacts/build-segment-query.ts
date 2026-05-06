@@ -7,7 +7,7 @@ export function applySegmentFilter(query: any, filter: SegmentFilter): any {
   if (include.conditions.length > 0) {
     if (include.operator === 'AND') {
       for (const { tag } of include.conditions) {
-        query = query.contains('tags', [tag])
+        query = query.filter('tags', 'cs', JSON.stringify([tag]))
       }
     } else {
       const orClause = include.conditions
