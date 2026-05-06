@@ -53,6 +53,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const { id } = await params
     const body = await request.json()
+    console.log('[patch-contact] body=', JSON.stringify(body))
     const contact = await contactDb.update(id, body)
 
     if (!contact) {
