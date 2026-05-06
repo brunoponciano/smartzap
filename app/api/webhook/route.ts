@@ -1056,6 +1056,50 @@ export async function POST(request: NextRequest) {
                       p_tags_to_remove: [],
                     })
                     console.log(`🏷️ Tag "${matchedReply.tag}" aplicada aos contatos ${ids.join(', ')} (from: ${from})`)
+
+                    // Dispara workflows com gatilho "Tag Adicionada"
+                    const { data: versions } = await supabaseAdmin
+                      .from('workflow_versions')
+                      .select('id, workflow_id, nodes, edges')
+                      .eq('status', 'published')
+
+                    for (const version of versions || []) {
+                      const triggerNode = (version.nodes || []).find(
+                        (n: any) =>
+                          n.data?.type === 'trigger' &&
+                          n.data?.config?.triggerType === 'Tag' &&
+                          n.data?.config?.tagName?.trim().toLowerCase() === matchedReply.tag.trim().toLowerCase()
+                      )
+                      if (!triggerNode) continue
+
+                      const { nanoid } = await import('nanoid')
+                      const executionId = nanoid()
+                      await supabaseAdmin.from('workflow_runs').insert({
+                        id: executionId,
+                        workflow_id: version.workflow_id,
+                        version_id: version.id,
+                        status: 'running',
+                        trigger_type: 'Tag',
+                        input: { tag: matchedReply.tag, phone: from },
+                        started_at: new Date().toISOString(),
+                      })
+
+                      try {
+                        await executeWorkflowDirect({
+                          workflowId: version.workflow_id,
+                          phone: from,
+                          triggerInput: { tag: matchedReply.tag, source: 'auto-reply' },
+                        })
+                        await supabaseAdmin.from('workflow_runs')
+                          .update({ status: 'success', completed_at: new Date().toISOString() })
+                          .eq('id', executionId)
+                      } catch (err) {
+                        console.error(`[Webhook] Falha ao executar workflow ${version.workflow_id}:`, err)
+                        await supabaseAdmin.from('workflow_runs')
+                          .update({ status: 'failed', completed_at: new Date().toISOString() })
+                          .eq('id', executionId)
+                      }
+                    }
                   }
                 }
               }
