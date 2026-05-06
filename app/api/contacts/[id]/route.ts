@@ -63,6 +63,13 @@ export async function PATCH(request: Request, { params }: Params) {
       )
     }
 
+    const phone = contact.phone || body.phone
+    if (phone && Array.isArray(body.tags)) {
+      for (const tag of body.tags) {
+        syncToLeadBox({ action: 'add_tag', phone, tag }).catch(() => {})
+      }
+    }
+
     return NextResponse.json(contact)
   } catch (error) {
     console.error('Failed to update contact:', error)
