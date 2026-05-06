@@ -4,6 +4,9 @@ import { contactDb } from '@/lib/supabase-db'
 import { validateBody, formatZodErrors } from '@/lib/api-validation'
 import { ContactStatus } from '@/types'
 import { normalizePhoneNumber } from '@/lib/phone-formatter'
+import { getSupabaseAdmin } from '@/lib/supabase'
+import { executeWorkflowDirect } from '@/lib/builder/workflow-executor-direct'
+import { nanoid } from 'nanoid'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -57,6 +60,51 @@ export async function POST(request: NextRequest) {
       },
       [tag_name]
     )
+
+    const admin = getSupabaseAdmin()
+    if (admin) {
+      const { data: versions } = await admin
+        .from('workflow_versions')
+        .select('id, workflow_id, nodes, edges')
+        .eq('status', 'published')
+
+      for (const version of versions || []) {
+        const triggerNode = (version.nodes || []).find(
+          (n: any) =>
+            n.data?.type === 'trigger' &&
+            n.data?.config?.triggerType === 'Tag' &&
+            n.data?.config?.tagName?.trim().toLowerCase() === tag_name.trim().toLowerCase()
+        )
+        if (!triggerNode) continue
+
+        const executionId = nanoid()
+        await admin.from('workflow_runs').insert({
+          id: executionId,
+          workflow_id: version.workflow_id,
+          version_id: version.id,
+          status: 'running',
+          trigger_type: 'Tag',
+          input: { contact, tag: tag_name },
+          started_at: new Date().toISOString(),
+        })
+
+        try {
+          await executeWorkflowDirect({
+            workflowId: version.workflow_id,
+            phone: String(contact.phone || ''),
+            triggerInput: { contact, tag: tag_name, source: 'crm-sync-tag' },
+          })
+          await admin.from('workflow_runs')
+            .update({ status: 'success', completed_at: new Date().toISOString() })
+            .eq('id', executionId)
+        } catch (err) {
+          console.error(`[crm-sync/tag] Falha ao executar workflow ${version.workflow_id}:`, err)
+          await admin.from('workflow_runs')
+            .update({ status: 'failed', completed_at: new Date().toISOString() })
+            .eq('id', executionId)
+        }
+      }
+    }
 
     return NextResponse.json({ ok: true, contact }, { status: 200 })
   } catch (error) {
