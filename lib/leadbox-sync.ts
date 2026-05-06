@@ -20,6 +20,7 @@ export async function syncToLeadBox({ action, phone, tag }: SyncParams): Promise
 
   // LeadBox não aceita o "+" no telefone
   const normalizedPhone = phone.startsWith('+') ? phone.slice(1) : phone
+  console.log('[leadbox-sync] phone enviado:', normalizedPhone)
 
   const payload: Record<string, string> = { action, phone: normalizedPhone }
   if (tag) payload.tag = tag
