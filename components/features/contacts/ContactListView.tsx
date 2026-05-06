@@ -356,7 +356,7 @@ export const ContactListView: React.FC<ContactListViewProps> = ({
       <ContactStatsComponent stats={stats} />
 
       {/* Main Content Panel */}
-      <Container variant="glass" padding="none" className="rounded-2xl flex-1 min-h-0 flex flex-col ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5">
+      <Container variant="glass" padding="none" className="rounded-2xl flex-1 min-h-[calc(100dvh-22rem)] flex flex-col ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5">
         {/* Filters */}
         <ContactFilters
           searchTerm={searchTerm}
