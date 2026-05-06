@@ -90,11 +90,11 @@ export async function POST(request: NextRequest) {
         phone: String(contact.phone || ""),
         triggerInput: { contact, tag: tagNormalized, source: "add-tag-api" },
       })
-        .then(async (execution) => {
+        .then(async () => {
           await admin
             .from("workflow_runs")
             .update({
-              status: execution.success ? "success" : "failed",
+              status: "success",
               completed_at: new Date().toISOString(),
             })
             .eq("id", executionId);
