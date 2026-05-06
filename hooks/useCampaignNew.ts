@@ -17,7 +17,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useCampaignFolders } from '@/hooks/useCampaignFolders'
 import { useAtomValue } from 'jotai'
 import { segmentFilterAtom } from '@/atoms/contact-filters'
-import { encodeSegment } from '@/types/segment-filter'
+import { encodeSegment, isSegmentFilterEmpty, type SegmentFilter } from '@/types/segment-filter'
 
 // ── Constants ──────────────────────────────────────────────────────────
 const MAX_TAG_CHIPS = 10
@@ -629,9 +629,43 @@ export const useCampaignNewController = () => {
     const contacts = await fetchJson<Contact[]>('/api/contacts')
     if (audienceMode === 'todos') return contacts
 
-    if (!selectedCountries.length && !selectedStates.length) return contacts
+    // Aplica filtro de segmento (tags include/exclude) antes do filtro de país/estado.
+    // Sem isso, o modo 'segmentos' sem país/estado selecionado retornava toda a base.
+    const applySegmentFilterClient = (list: Contact[], filter: SegmentFilter): Contact[] => {
+      const { include, exclude } = filter
+      return list.filter((contact) => {
+        const tags = (contact.tags || []).map((t) => t.toLowerCase())
 
-    return contacts.filter((contact) => {
+        if (include.conditions.length > 0) {
+          const includeTags = include.conditions.map((c) => c.tag.toLowerCase())
+          const match =
+            include.operator === 'AND'
+              ? includeTags.every((t) => tags.includes(t))
+              : includeTags.some((t) => tags.includes(t))
+          if (!match) return false
+        }
+
+        if (exclude.conditions.length > 0) {
+          const excludeTags = exclude.conditions.map((c) => c.tag.toLowerCase())
+          const shouldExclude =
+            exclude.operator === 'OR'
+              ? excludeTags.some((t) => tags.includes(t))
+              : excludeTags.every((t) => tags.includes(t))
+          if (shouldExclude) return false
+        }
+
+        return true
+      })
+    }
+
+    const filtered =
+      audienceMode === 'segmentos' && !isSegmentFilterEmpty(segmentFilter)
+        ? applySegmentFilterClient(contacts, segmentFilter)
+        : contacts
+
+    if (!selectedCountries.length && !selectedStates.length) return filtered
+
+    return filtered.filter((contact) => {
       const phone = String(contact.phone || '')
       const country = selectedCountries.length ? resolveCountry(phone) : null
       const uf = selectedStates.length ? getBrazilUfFromPhone(phone) : null
