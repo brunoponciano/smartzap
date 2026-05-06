@@ -11,27 +11,27 @@ export interface ContactStatsProps {
 
 export const ContactStats: React.FC<ContactStatsProps> = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <StatCard
         title="Total de Contatos"
         value={(stats?.total ?? 0).toLocaleString()}
         icon={Users}
         color="blue"
-        layout="horizontal"
+        layout="compact"
       />
       <StatCard
         title="Opt-in Ativos"
         value={(stats?.optIn ?? 0).toLocaleString()}
         icon={UserCheck}
         color="emerald"
-        layout="horizontal"
+        layout="compact"
       />
       <StatCard
         title="Inativos / Opt-out"
         value={(stats?.optOut ?? 0).toLocaleString()}
         icon={UserX}
         color="zinc"
-        layout="horizontal"
+        layout="compact"
       />
     </div>
   );
