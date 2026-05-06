@@ -11,6 +11,7 @@ type ZApiSendMessageResult =
 export type ZApiSendMessageInput = StepInput & {
   instanceId?: string;
   token?: string;
+  clientToken?: string;
   phone?: string;
   message?: string;
 };
@@ -18,6 +19,7 @@ export type ZApiSendMessageInput = StepInput & {
 export async function sendZapiMessage(input: {
   instanceId: string;
   token: string;
+  clientToken: string;
   phone: string;
   message: string;
 }): Promise<ZApiSendMessageResult> {
@@ -26,6 +28,9 @@ export async function sendZapiMessage(input: {
 
   const token = input.token.trim();
   if (!token) return { success: false, error: "token is required" };
+
+  const clientToken = input.clientToken.trim();
+  if (!clientToken) return { success: false, error: "clientToken is required" };
 
   const rawPhone = input.phone.trim();
   const phone = normalizePhoneNumber(rawPhone);
@@ -45,7 +50,7 @@ export async function sendZapiMessage(input: {
   try {
     res = await fetchWithTimeout(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Client-Token": clientToken },
       body: JSON.stringify({ phone: phoneForApi, message }),
       timeoutMs: 15_000,
     });
@@ -76,6 +81,7 @@ export async function zapiSendMessageStep(
     sendZapiMessage({
       instanceId: String(input.instanceId || ""),
       token: String(input.token || ""),
+      clientToken: String(input.clientToken || ""),
       phone: String(input.phone || ""),
       message: String(input.message || ""),
     })

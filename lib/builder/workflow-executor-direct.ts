@@ -211,6 +211,7 @@ export async function executeWorkflowDirect({
           const result = await sendZapiMessage({
             instanceId: String(config.instanceId || ""),
             token: String(config.token || ""),
+            clientToken: String(config.clientToken || ""),
             phone: targetPhone,
             message: String(config.message || ""),
           });

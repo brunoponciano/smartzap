@@ -479,6 +479,13 @@ const integrations: IntegrationPlugin[] = [
             required: true,
           },
           {
+            key: "clientToken",
+            label: "Client Token",
+            type: "template-input",
+            placeholder: "ex: Fc1234abcd...",
+            required: true,
+          },
+          {
             key: "phone",
             label: "Telefone destino",
             type: "template-input",
