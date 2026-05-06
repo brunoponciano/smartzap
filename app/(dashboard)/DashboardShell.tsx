@@ -656,10 +656,10 @@ function PageContentShell({ children }: { children: React.ReactNode }) {
     const mainOverflowClass = layout.overflow === 'hidden' ? 'overflow-hidden' : 'overflow-auto'
     const mainPaddingClass = layout.padded ? 'p-6 lg:p-10' : ''
     const wrapperWidthClass = getPageWidthClass(layout.width)
-    const wrapperHeightClass = layout.height === 'full' ? 'h-full' : ''
+    const wrapperHeightClass = layout.height === 'full' ? 'h-full flex flex-col' : ''
 
     return (
-        <main className={`flex-1 ${mainOverflowClass} ${mainPaddingClass}`.trim()}>
+        <main className={`flex-1 flex flex-col ${mainOverflowClass} ${mainPaddingClass}`.trim()}>
             <div className={`${wrapperWidthClass} ${wrapperHeightClass}`.trim()}>
                 {layout.showAccountAlerts && <AccountAlertBanner />}
                 {children}
