@@ -204,6 +204,11 @@ export async function executeWorkflowDirect({
         }
       } else if (actionType === "zapi/send-message") {
         const targetPhone = String(config.phone || phone || "").trim();
+        const firstName = String(contact?.name || "").split(" ")[0];
+        const rawMessage = String(config.message || "").replace(
+          /\{\{contact\.name\}\}/g,
+          firstName
+        );
         try {
           const { sendZapiMessage } = await import(
             "@/lib/builder/steps/zapi/send-message"
@@ -213,7 +218,7 @@ export async function executeWorkflowDirect({
             token: String(config.token || ""),
             clientToken: String(config.clientToken || ""),
             phone: targetPhone,
-            message: String(config.message || ""),
+            message: rawMessage,
           });
           if (!result.success) {
             console.error(
