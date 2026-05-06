@@ -679,9 +679,10 @@ export async function POST(request: NextRequest) {
 
         const statuses = change.value?.statuses || []
 
-        if (statuses.length > 0) {
-          console.log(`[EMERGENCY COOLDOWN] Dropping ${statuses.length} status updates to prevent DB exhaustion.`);
-          continue; // Skip processing statuses entirely
+        const criticalStatuses = statuses.filter((s: any) => normalizeMetaStatus(s?.status) === 'failed')
+        const droppedCount = statuses.length - criticalStatuses.length
+        if (droppedCount > 0) {
+          console.log(`[EMERGENCY COOLDOWN] Dropping ${droppedCount} non-critical status updates to prevent DB exhaustion.`)
         }
 
         // =========================================================
@@ -690,7 +691,7 @@ export async function POST(request: NextRequest) {
         // - 2) Aplicamos no campaign_contacts (idempotente)
         // - 3) Em erro de persistência/aplicação, retornamos 500 para forçar retry
         // =========================================================
-        for (const statusUpdate of statuses) {
+        for (const statusUpdate of criticalStatuses) {
           const messageId = String(statusUpdate?.id || '').trim()
           const status = normalizeMetaStatus(statusUpdate?.status)
           try {
