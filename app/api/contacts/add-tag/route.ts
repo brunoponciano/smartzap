@@ -3,7 +3,7 @@ import { contactDb } from "@/lib/supabase-db";
 import { ContactStatus } from "@/types";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { requireSessionOrApiKey } from "@/lib/request-auth";
-import { executeWorkflow } from "@/lib/builder/workflow-executor.workflow";
+import { executeWorkflowDirect } from "@/lib/builder/workflow-executor-direct";
 import { nanoid } from "nanoid";
 import { normalizePhoneNumber } from "@/lib/phone-formatter";
 
@@ -85,16 +85,10 @@ export async function POST(request: NextRequest) {
       });
 
       // Executa de forma assíncrona para não prender o request
-      executeWorkflow({
-        nodes: workflow.nodes,
-        edges: workflow.edges,
-        triggerInput: {
-          contact,
-          tag: tagNormalized,
-          source: "add-tag-api"
-        },
-        executionId,
+      executeWorkflowDirect({
         workflowId: workflow.workflow_id,
+        phone: String(contact.phone || ""),
+        triggerInput: { contact, tag: tagNormalized, source: "add-tag-api" },
       })
         .then(async (execution) => {
           await admin
