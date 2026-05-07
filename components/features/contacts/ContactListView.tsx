@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { Trash2, UploadCloud, Download, FileText, Plus, Tag, CircleUser } from 'lucide-react';
 import { Contact, ContactStatus, CustomFieldDefinition } from '../../../types';
 import { CustomFieldsSheet } from './CustomFieldsSheet';
-import { Page, PageActions, PageDescription, PageHeader, PageTitle } from '@/components/ui/page';
 import { Container } from '@/components/ui/container';
 import { Button } from '@/components/ui/button';
 
@@ -253,110 +252,76 @@ export const ContactListView: React.FC<ContactListViewProps> = ({
   }, [contacts, selectedIds]);
 
   return (
-    <Page className="flex flex-col h-full min-h-0">
-      {/* Page Header with Actions */}
-      <PageHeader>
-        <div>
-          <PageTitle>Contatos</PageTitle>
-          <PageDescription>Gerencie sua audiência e listas</PageDescription>
+    <div className="flex flex-col h-full min-h-0 gap-3 px-6 py-4 lg:px-10 lg:py-5">
+      {/* Page Header — compact single row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-base font-semibold text-[var(--ds-text-primary)] shrink-0">Contatos</h1>
+          <ContactStatsComponent stats={stats} />
         </div>
 
-        <PageActions className="flex-wrap justify-start sm:justify-end">
-          {/* Ações de seleção + Import agrupados */}
-          <div className="flex items-center gap-2">
-            {isSomeSelected && (
-              <Button
-                variant="outline"
-                onClick={handleExport}
-                disabled={isExporting}
-                aria-label={`Exportar ${selectedIds.size} contato(s) selecionado(s)`}
-                title="Exportar selecionados"
-              >
-                <Download size={18} aria-hidden="true" />
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={() => setIsImportModalOpen(true)}
-              aria-label="Importar contatos via arquivo CSV"
-              title="Importar CSV"
-            >
-              <UploadCloud size={18} aria-hidden="true" />
-            </Button>
-          </div>
-
-          {/* Ações em lote separadas visualmente */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {isSomeSelected && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsBulkTagsModalOpen(true)}
-              disabled={isBulkUpdatingTags}
-              className="gap-2"
+              onClick={handleExport}
+              disabled={isExporting}
+              aria-label={`Exportar ${selectedIds.size} contato(s) selecionado(s)`}
+              title="Exportar selecionados"
             >
-              <Tag size={14} />
-              Editar tags
-              <span className="text-xs opacity-60">({selectedIds.size})</span>
+              <Download size={15} aria-hidden="true" />
             </Button>
           )}
 
-          {isSomeSelected && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsBulkStatusModalOpen(true)}
-              disabled={isBulkUpdatingStatus}
-              className="gap-2"
-            >
-              <CircleUser size={14} />
-              Editar status
-              <span className="text-xs opacity-60">({selectedIds.size})</span>
-            </Button>
-          )}
-
-          {isSomeSelected && (
-            <Button
-              variant="destructive"
-              onClick={onBulkDeleteClick}
-              aria-label={`Excluir ${selectedIds.size} contato(s) selecionado(s)`}
-              title="Excluir selecionados"
-            >
-              <Trash2 size={18} aria-hidden="true" />
-            </Button>
-          )}
-
-          <CustomFieldsSheet
-            entityType="contact"
-            onFieldCreated={handleCustomFieldCreated}
-            onFieldDeleted={handleCustomFieldDeleted}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImportModalOpen(true)}
+            aria-label="Importar contatos via arquivo CSV"
+            title="Importar CSV"
           >
-            <Button
-              variant="outline"
-              type="button"
-              aria-label="Gerenciar campos personalizados"
-            >
-              <FileText size={18} aria-hidden="true" />
+            <UploadCloud size={15} aria-hidden="true" />
+          </Button>
+
+          {isSomeSelected && (
+            <Button variant="outline" size="sm" onClick={() => setIsBulkTagsModalOpen(true)} disabled={isBulkUpdatingTags} className="gap-1.5">
+              <Tag size={13} />
+              Tags
+              <span className="text-xs opacity-60">({selectedIds.size})</span>
+            </Button>
+          )}
+
+          {isSomeSelected && (
+            <Button variant="outline" size="sm" onClick={() => setIsBulkStatusModalOpen(true)} disabled={isBulkUpdatingStatus} className="gap-1.5">
+              <CircleUser size={13} />
+              Status
+              <span className="text-xs opacity-60">({selectedIds.size})</span>
+            </Button>
+          )}
+
+          {isSomeSelected && (
+            <Button variant="destructive" size="sm" onClick={onBulkDeleteClick} aria-label={`Excluir ${selectedIds.size} contato(s) selecionado(s)`}>
+              <Trash2 size={15} aria-hidden="true" />
+            </Button>
+          )}
+
+          <CustomFieldsSheet entityType="contact" onFieldCreated={handleCustomFieldCreated} onFieldDeleted={handleCustomFieldDeleted}>
+            <Button variant="outline" size="sm" type="button" aria-label="Gerenciar campos personalizados">
+              <FileText size={15} aria-hidden="true" />
               Campos personalizados
             </Button>
           </CustomFieldsSheet>
 
-          <Button
-            variant="brand"
-            onClick={() => setIsAddModalOpen(true)}
-            aria-label="Adicionar novo contato"
-          >
-            <Plus size={18} aria-hidden="true" />
+          <Button variant="brand" size="sm" onClick={() => setIsAddModalOpen(true)} aria-label="Adicionar novo contato">
+            <Plus size={15} aria-hidden="true" />
             Novo Contato
           </Button>
-        </PageActions>
-      </PageHeader>
+        </div>
+      </div>
 
-      {/* Stats Row */}
-      <ContactStatsComponent stats={stats} />
-
-      {/* Main Content Panel */}
-      <Container variant="glass" padding="none" className="rounded-2xl flex-1 min-h-[calc(100dvh-22rem)] flex flex-col ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5">
+      {/* Main Content Panel — ocupa todo o espaço restante */}
+      <Container variant="glass" padding="none" className="rounded-2xl flex-1 min-h-0 flex flex-col ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5">
         {/* Filters */}
         <ContactFilters
           searchTerm={searchTerm}
@@ -467,6 +432,6 @@ export const ContactListView: React.FC<ContactListViewProps> = ({
         onCustomFieldCreated={handleCustomFieldCreated}
         onCustomFieldDeleted={handleCustomFieldDeleted}
       />
-    </Page>
+    </div>
   );
 };

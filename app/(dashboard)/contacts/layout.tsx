@@ -6,7 +6,7 @@ export default function ContactsLayout({ children }: { children: React.ReactNode
     <PageLayoutScope
       value={{
         width: 'content',
-        padded: true,
+        padded: false,
         overflow: 'hidden',
         height: 'full',
         showAccountAlerts: true,
