@@ -374,6 +374,41 @@ export const useCampaignWizardController = () => {
     });
   }, [allContacts, suppressedPhones]);
 
+  const applyLeadBoxPhones = useCallback((phones: string[]) => {
+    const normalizedSet = new Set(
+      phones.map((p) => normalizePhoneNumber(String(p || '').trim())).filter(Boolean)
+    );
+    const ids = allContacts
+      .filter((c) => {
+        const normalized = normalizePhoneNumber(String(c.phone || '').trim());
+        return normalized && normalizedSet.has(normalized);
+      })
+      .map((c) => c.id);
+
+    dispatchAudience({
+      type: 'APPLY_PRESET',
+      payload: {
+        source: 'specific',
+        preset: 'manual',
+        criteria: {
+          status: 'ALL',
+          includeTag: null,
+          includeTags: [],
+          excludeTags: [],
+          createdWithinDays: null,
+          excludeOptOut: false,
+          noTags: false,
+          uf: null,
+          ddi: null,
+          customFieldKey: null,
+          customFieldMode: null,
+          customFieldValue: null,
+        },
+        selectedIds: ids,
+      },
+    });
+  }, [allContacts, dispatchAudience]);
+
   // Use pure function from business logic for preset application
   // Uses batch action to update all audience state in one dispatch (reduces re-renders)
   const selectAudiencePreset = useCallback((preset: AudiencePresetId) => {
@@ -736,6 +771,7 @@ export const useCampaignWizardController = () => {
     audienceCriteria,
     topTag,
     applyAudienceCriteria,
+    applyLeadBoxPhones,
     selectAudiencePreset,
     audienceStats,
     availableTemplates,
