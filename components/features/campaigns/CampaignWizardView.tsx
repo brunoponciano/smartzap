@@ -113,6 +113,7 @@ export interface CampaignWizardViewProps {
   topTag?: string | null;
   audienceStats?: AudienceStats;
   applyAudienceCriteria?: (criteria: AudienceCriteria, preset?: AudiencePreset) => void;
+  applyLeadBoxPhones?: (phones: string[]) => void;
   selectAudiencePreset?: (preset: AudiencePreset) => void;
   availableTemplates: Template[];
   selectedTemplate?: Template;
@@ -149,7 +150,7 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = (props) => 
     allContacts, filteredContacts, contactSearchTerm, setContactSearchTerm,
     selectedContacts, selectedContactIds, toggleContact,
     audiencePreset, audienceCriteria, topTag, audienceStats,
-    applyAudienceCriteria, selectAudiencePreset,
+    applyAudienceCriteria, applyLeadBoxPhones, selectAudiencePreset,
     availableTemplates, selectedTemplate,
     handleNext, handleBack, handlePrecheck, precheckResult, isPrechecking,
     handleSend, isCreating, testContact, isEnsuringTestContact,
@@ -333,6 +334,9 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = (props) => 
                 setIsAudienceRefineOpen={uiActions.setIsAudienceRefineOpen}
                 isSegmentsSheetOpen={uiState.isSegmentsSheetOpen}
                 setIsSegmentsSheetOpen={uiActions.setIsSegmentsSheetOpen}
+                isLeadBoxSheetOpen={uiState.isLeadBoxSheetOpen}
+                setIsLeadBoxSheetOpen={uiActions.setIsLeadBoxSheetOpen}
+                applyLeadBoxPhones={applyLeadBoxPhones ?? (() => {})}
                 segmentTagDraft={uiState.segmentTagDraft} setSegmentTagDraft={uiActions.setSegmentTagDraft}
                 segmentDdiDraft={uiState.segmentDdiDraft} setSegmentDdiDraft={uiActions.setSegmentDdiDraft}
                 segmentCustomFieldKeyDraft={uiState.segmentCustomFieldKeyDraft}

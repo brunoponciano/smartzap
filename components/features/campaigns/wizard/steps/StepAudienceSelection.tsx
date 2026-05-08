@@ -6,7 +6,9 @@ import {
   TestContactCard,
   AudienceCardAll,
   AudienceCardSegments,
+  AudienceCardLeadBox,
   SegmentsSheet,
+  LeadBoxSheet,
   RefineSheet,
   ContactSelectionList,
   LegacyAudienceMode,
@@ -52,6 +54,9 @@ export function StepAudienceSelection(props: StepAudienceSelectionProps) {
     setIsAudienceRefineOpen,
     isSegmentsSheetOpen,
     setIsSegmentsSheetOpen,
+    isLeadBoxSheetOpen,
+    setIsLeadBoxSheetOpen,
+    applyLeadBoxPhones,
     segmentTagDraft,
     setSegmentTagDraft,
     segmentDdiDraft,
@@ -123,7 +128,7 @@ export function StepAudienceSelection(props: StepAudienceSelectionProps) {
           )}
 
           {/* Main Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AudienceCardAll
               eligibleContactsCount={eligibleContactsCount}
               currentLimit={currentLimit}
@@ -139,12 +144,38 @@ export function StepAudienceSelection(props: StepAudienceSelectionProps) {
               recipientCount={recipientCount}
               onSelect={() => {
                 setIsSegmentsSheetOpen(true);
+                setIsLeadBoxSheetOpen(false);
+                setIsAudienceRefineOpen(false);
+              }}
+              selectedTemplate={selectedTemplate}
+              exchangeRate={exchangeRate}
+            />
+
+            <AudienceCardLeadBox
+              isSelected={false}
+              subtitle="Importe de um segmento salvo"
+              recipientCount={recipientCount}
+              onSelect={() => {
+                setIsLeadBoxSheetOpen(true);
+                setIsSegmentsSheetOpen(false);
                 setIsAudienceRefineOpen(false);
               }}
               selectedTemplate={selectedTemplate}
               exchangeRate={exchangeRate}
             />
           </div>
+
+          {/* LeadBox Sheet */}
+          {isLeadBoxSheetOpen && (
+            <LeadBoxSheet
+              recipientSource={recipientSource}
+              onClose={() => setIsLeadBoxSheetOpen(false)}
+              onApplyPhones={(phones) => {
+                applyLeadBoxPhones(phones);
+                setIsLeadBoxSheetOpen(false);
+              }}
+            />
+          )}
 
           {/* Segments Sheet */}
           {isSegmentsSheetOpen && (
