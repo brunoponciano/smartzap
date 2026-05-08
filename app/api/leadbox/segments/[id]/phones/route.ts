@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { verifyApiKey } from '@/lib/auth'
+import { NextRequest } from 'next/server'
+import { verifyApiKey, unauthorizedResponse } from '@/lib/auth'
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authError = verifyApiKey(req)
-  if (authError) return authError
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await verifyApiKey(req)
+  if (!auth.valid) return unauthorizedResponse(auth.error)
 
   const { id } = await params
   const url = process.env.LEADBOX_SUPABASE_URL
