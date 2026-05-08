@@ -159,6 +159,7 @@ export const useCampaignNewController = () => {
   const preselectedTemplateName = searchParams?.get('templateName') || null
   const [step, setStep] = useState(1)
   const [audienceMode, setAudienceMode] = useState('todos')
+  const [leadboxPhones, setLeadboxPhones] = useState<string[]>([])
   const [collapseAudienceChoice, setCollapseAudienceChoice] = useState(false)
   const [collapseQuickSegments, setCollapseQuickSegments] = useState(false)
   const [selectedCountries, setSelectedCountries] = useState<string[]>([])
@@ -628,6 +629,13 @@ export const useCampaignNewController = () => {
 
     const contacts = await fetchJson<Contact[]>('/api/contacts')
     if (audienceMode === 'todos') return contacts
+
+    if (audienceMode === 'leadbox') {
+      const normalizedSet = new Set(
+        leadboxPhones.map((p) => String(p || '').trim().replace(/^\+/, ''))
+      )
+      return contacts.filter((c) => normalizedSet.has(String(c.phone || '').trim().replace(/^\+/, '')))
+    }
 
     // Aplica filtro de segmento (tags include/exclude) antes do filtro de país/estado.
     // Sem isso, o modo 'segmentos' sem país/estado selecionado retornava toda a base.
@@ -1120,7 +1128,10 @@ export const useCampaignNewController = () => {
   const baseCount = statsQuery.data?.total ?? 0
   const segmentEstimate = segmentCountQuery.data?.matched ?? baseCount
   const audienceCount =
-    audienceMode === 'todos' ? baseCount : audienceMode === 'segmentos' ? segmentEstimate : selectedTestCount
+    audienceMode === 'todos' ? baseCount
+    : audienceMode === 'segmentos' ? segmentEstimate
+    : audienceMode === 'leadbox' ? leadboxPhones.length
+    : selectedTestCount
   const isSegmentCountLoading = audienceMode === 'segmentos' && segmentCountQuery.isFetching
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`
 
@@ -1554,6 +1565,8 @@ export const useCampaignNewController = () => {
     // Audience
     audienceMode,
     setAudienceMode,
+    leadboxPhones,
+    setLeadboxPhones,
     collapseAudienceChoice,
     setCollapseAudienceChoice,
     collapseQuickSegments,

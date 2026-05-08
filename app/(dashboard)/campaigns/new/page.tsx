@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { useCampaignNewController, steps, formatDateLabel, parsePickerDate } from '@/hooks/useCampaignNew'
 import { SegmentFilterBuilder } from '@/components/features/contacts/list/segment-filter/SegmentFilterBuilder'
+import { LeadBoxSheet } from '@/components/features/campaigns/wizard/steps/audience/LeadBoxSheet'
 
 export default function CampaignsNewRealPage() {
   const ctrl = useCampaignNewController()
@@ -621,6 +622,7 @@ export default function CampaignsNewRealPage() {
                       <div className="mt-1 text-sm font-semibold text-[var(--ds-text-primary)]">
                         {ctrl.audienceMode === 'todos' && 'Todos'}
                         {ctrl.audienceMode === 'segmentos' && 'Segmentos'}
+                        {ctrl.audienceMode === 'leadbox' && 'LeadBox'}
                         {ctrl.audienceMode === 'teste' && 'Teste'}
                       </div>
                     </div>
@@ -642,6 +644,7 @@ export default function CampaignsNewRealPage() {
                       {[
                         { label: 'Todos', value: 'todos', helper: `${ctrl.statsQuery.data?.optIn ?? 0} contatos elegíveis` },
                         { label: 'Segmentos', value: 'segmentos', helper: 'Filtrar por tags, DDI ou UF' },
+                        { label: 'LeadBox', value: 'leadbox', helper: 'Importar segmento do LeadBox' },
                         { label: 'Teste', value: 'teste', helper: 'Enviar para contato de teste' },
                       ].map((item) => (
                         <button
@@ -772,6 +775,23 @@ export default function CampaignsNewRealPage() {
                       </div>
                       <SegmentFilterBuilder />
                     </>
+                  )}
+                </div>
+              )}
+
+              {ctrl.audienceMode === 'leadbox' && (
+                <div className="rounded-2xl border border-[var(--ds-border-default)] bg-[var(--ds-bg-surface)] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+                  <LeadBoxSheet
+                    recipientSource="specific"
+                    onClose={() => ctrl.setAudienceMode('todos')}
+                    onApplyPhones={(phones) => {
+                      ctrl.setLeadboxPhones(phones)
+                    }}
+                  />
+                  {ctrl.leadboxPhones.length > 0 && (
+                    <p className="mt-3 text-sm text-[var(--ds-text-muted)]">
+                      {ctrl.leadboxPhones.length} telefones importados do LeadBox.
+                    </p>
                   )}
                 </div>
               )}

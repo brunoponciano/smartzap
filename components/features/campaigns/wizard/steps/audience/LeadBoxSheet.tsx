@@ -24,7 +24,6 @@ export function LeadBoxSheet({ recipientSource, onClose, onApplyPhones }: LeadBo
     try {
       const phones = await leadboxService.getPhones(selectedSegment.id)
       onApplyPhones(phones)
-      onClose()
     } finally {
       setIsLoadingPhones(false)
     }
