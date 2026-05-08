@@ -51,6 +51,7 @@ export interface CampaignWizardUIState {
   isFieldsSheetOpen: boolean;
   isAudienceRefineOpen: boolean;
   isSegmentsSheetOpen: boolean;
+  isLeadBoxSheetOpen: boolean;
 
   // Quick Edit
   quickEditContactId: string | null;
@@ -94,6 +95,7 @@ export interface CampaignWizardUIActions {
   setIsFieldsSheetOpen: (value: boolean) => void;
   setIsAudienceRefineOpen: (value: boolean) => void;
   setIsSegmentsSheetOpen: (value: boolean) => void;
+  setIsLeadBoxSheetOpen: (value: boolean) => void;
 
   // Quick Edit
   setQuickEditContactId: (value: string | null) => void;
@@ -165,6 +167,7 @@ export function useCampaignWizardUI(
   const [isFieldsSheetOpen, setIsFieldsSheetOpen] = useState(false);
   const [isAudienceRefineOpen, setIsAudienceRefineOpen] = useState(false);
   const [isSegmentsSheetOpen, setIsSegmentsSheetOpen] = useState(false);
+  const [isLeadBoxSheetOpen, setIsLeadBoxSheetOpen] = useState(false);
 
   // Quick Edit states
   const [quickEditContactId, setQuickEditContactId] = useState<string | null>(null);
@@ -249,6 +252,7 @@ export function useCampaignWizardUI(
       isFieldsSheetOpen,
       isAudienceRefineOpen,
       isSegmentsSheetOpen,
+      isLeadBoxSheetOpen,
       // Quick Edit
       quickEditContactId,
       quickEditFocus,
@@ -285,6 +289,7 @@ export function useCampaignWizardUI(
       setIsFieldsSheetOpen,
       setIsAudienceRefineOpen,
       setIsSegmentsSheetOpen,
+      setIsLeadBoxSheetOpen,
       // Quick Edit
       setQuickEditContactId,
       setQuickEditFocus: setQuickEditFocusSafe,

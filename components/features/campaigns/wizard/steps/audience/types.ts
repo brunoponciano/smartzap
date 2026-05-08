@@ -89,6 +89,9 @@ export interface StepAudienceSelectionProps {
   setIsAudienceRefineOpen: (open: boolean) => void;
   isSegmentsSheetOpen: boolean;
   setIsSegmentsSheetOpen: (open: boolean) => void;
+  isLeadBoxSheetOpen: boolean;
+  setIsLeadBoxSheetOpen: (open: boolean) => void;
+  applyLeadBoxPhones: (phones: string[]) => void;
   segmentTagDraft: string;
   setSegmentTagDraft: (value: string) => void;
   segmentDdiDraft: string;
@@ -139,6 +142,21 @@ export interface AudienceCardSegmentsProps {
   onSelect: () => void;
   selectedTemplate?: Template;
   exchangeRate?: number | null;
+}
+
+export interface AudienceCardLeadBoxProps {
+  isSelected: boolean;
+  subtitle: string;
+  recipientCount: number;
+  onSelect: () => void;
+  selectedTemplate?: Template;
+  exchangeRate?: number | null;
+}
+
+export interface LeadBoxSheetProps {
+  recipientSource: 'all' | 'specific' | 'test' | null;
+  onClose: () => void;
+  onApplyPhones: (phones: string[]) => void;
 }
 
 export interface SegmentsSheetProps {
