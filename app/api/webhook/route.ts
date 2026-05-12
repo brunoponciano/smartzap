@@ -984,7 +984,7 @@ export async function POST(request: NextRequest) {
               type: messageType,
               text,
               timestamp: message.timestamp,
-              mediaUrl: message.image?.url || message.video?.url || message.audio?.url || message.document?.url || null,
+              mediaUrl: message.image?.id || message.video?.id || message.audio?.id || message.document?.id || null,
               phoneNumberId: phoneNumberId || undefined,
             })
             inboxConversationId = inboxResult.conversationId
