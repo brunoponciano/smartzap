@@ -51,7 +51,6 @@ import {
     useGuidedTour,
 } from '@/components/features/setup'
 import { NewMessageAlert } from '@/components/features/inbox/NewMessageAlert'
-import { Suspense } from 'react'
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus'
 
 export function DashboardShell({
@@ -432,7 +431,7 @@ export function DashboardShell({
     if (isBuilderRoute) {
         return (
             <PageLayoutProvider>
-                <Suspense fallback={null}><NewMessageAlert /></Suspense>
+                <NewMessageAlert />
                 <div
                     className="min-h-screen bg-[var(--ds-bg-base)] text-[var(--ds-text-primary)] flex font-sans selection:bg-primary-500/30"
                     style={{
@@ -455,7 +454,7 @@ export function DashboardShell({
     if (isInboxRoute) {
         return (
             <PageLayoutProvider>
-                <Suspense fallback={null}><NewMessageAlert /></Suspense>
+                <NewMessageAlert />
                 <div className="min-h-screen bg-[var(--ds-bg-base)] text-[var(--ds-text-primary)] flex font-sans selection:bg-primary-500/30">
                     {/* Mobile Overlay */}
                     {isMobileMenuOpen && (

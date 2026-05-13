@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase'
 import { playComplete } from './useSoundFX'
 
@@ -22,7 +22,6 @@ const INITIAL_STATE: AlertState = {
 export function useNewMessageAlert() {
   const [alert, setAlert] = useState<AlertState>(INITIAL_STATE)
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const soundIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const titleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const originalTitleRef = useRef<string>('')
@@ -52,7 +51,9 @@ export function useNewMessageAlert() {
   useEffect(() => {
     if (!alert.active) return
 
-    const conversationParam = searchParams?.get('conversation')
+    const conversationParam = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('conversation')
+      : null
     const isViewingConversation =
       (pathname?.includes('/atendimento') && conversationParam === alert.conversationId) ||
       pathname?.includes(`/inbox/${alert.conversationId}`)
