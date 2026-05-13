@@ -74,8 +74,8 @@ export function useNewMessageAlert() {
     safePlay()
     soundIntervalRef.current = setInterval(safePlay, 4000)
 
-    // Tab blinking every 1s (start toggled=true so first tick shows alert title immediately)
-    let toggled = true
+    // Tab blinking every 1s (start toggled=false so first tick shows alert title immediately)
+    let toggled = false
     titleIntervalRef.current = setInterval(() => {
       document.title = toggled ? originalTitleRef.current : '⚡ Nova mensagem!'
       toggled = !toggled
@@ -117,15 +117,15 @@ export function useNewMessageAlert() {
           // Buscar nome do contato via join contacts
           let contactName = 'Contato'
           try {
-            const supabaseClient = getSupabaseBrowser()
-            if (supabaseClient) {
-              const { data } = await supabaseClient
+            if (supabase) {
+              const { data } = await supabase
                 .from('inbox_conversations')
                 .select('contacts(name)')
                 .eq('id', conversationId)
                 .single()
-              const contactsData = data?.contacts as { name?: string } | null
-              contactName = contactsData?.name ?? 'Contato'
+              const raw = data?.contacts
+              const contactsData = Array.isArray(raw) ? raw[0] : raw
+              contactName = (contactsData as { name?: string } | null)?.name ?? 'Contato'
             }
           } catch {
             contactName = 'Contato'
