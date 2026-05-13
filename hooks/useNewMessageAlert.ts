@@ -26,6 +26,7 @@ export function useNewMessageAlert() {
   const soundIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const titleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const originalTitleRef = useRef<string>('')
+  const stopAlertRef = useRef<() => void>(() => {})
 
   const stopAlert = useCallback(() => {
     if (soundIntervalRef.current) {
@@ -39,6 +40,9 @@ export function useNewMessageAlert() {
     }
     setAlert(INITIAL_STATE)
   }, [])
+
+  // Keep stopAlertRef in sync so Realtime callback can always call latest stopAlert
+  useEffect(() => { stopAlertRef.current = stopAlert }, [stopAlert])
 
   const dismiss = useCallback(() => {
     stopAlert()
@@ -65,14 +69,13 @@ export function useNewMessageAlert() {
     // Save original title
     originalTitleRef.current = document.title
 
-    // Immediate sound + loop every 4s
-    playComplete()
-    soundIntervalRef.current = setInterval(() => {
-      playComplete()
-    }, 4000)
+    // Immediate sound + loop every 4s (wrapped to handle autoplay block)
+    const safePlay = () => { try { playComplete() } catch { /* suspended ctx */ } }
+    safePlay()
+    soundIntervalRef.current = setInterval(safePlay, 4000)
 
-    // Tab blinking every 1s
-    let toggled = false
+    // Tab blinking every 1s (start toggled=true so first tick shows alert title immediately)
+    let toggled = true
     titleIntervalRef.current = setInterval(() => {
       document.title = toggled ? originalTitleRef.current : '⚡ Nova mensagem!'
       toggled = !toggled
@@ -138,6 +141,8 @@ export function useNewMessageAlert() {
 
           if (isViewingNow) return
 
+          // Stop any existing alert before starting new one (handles rapid successive messages)
+          stopAlertRef.current()
           setAlert({
             active: true,
             contactName,
