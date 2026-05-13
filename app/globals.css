@@ -1207,3 +1207,14 @@ textarea:focus-visible {
  * Chat bubble styles are now inline Tailwind in MessageBubble.tsx
  * Design: Editorial Minimal - clean, monochromatic, typography-focused
  */
+
+@layer utilities {
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15); }
+}
