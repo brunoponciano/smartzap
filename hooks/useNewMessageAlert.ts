@@ -61,7 +61,7 @@ export function useNewMessageAlert() {
     if (isViewingConversation) {
       stopAlert()
     }
-  }, [pathname, searchParams, alert.active, alert.conversationId, stopAlert])
+  }, [pathname, alert.active, alert.conversationId, stopAlert])
 
   // Start sound and tab blinking when alert becomes active
   useEffect(() => {
