@@ -108,29 +108,27 @@ export function useNewMessageAlert() {
         async (payload) => {
           const msg = payload.new as {
             conversation_id: string
-            body?: string
-            contact_name?: string
+            content?: string
           }
 
           const conversationId = msg.conversation_id
-          const preview = msg.body ?? 'Nova mensagem'
+          const preview = msg.content ?? 'Nova mensagem'
 
-          // Try to get contact name from message, fallback to conversation
-          let contactName = msg.contact_name ?? ''
-          if (!contactName) {
-            try {
-              const supabaseClient = getSupabaseBrowser()
-              if (supabaseClient) {
-                const { data } = await supabaseClient
-                  .from('inbox_conversations')
-                  .select('contact_name')
-                  .eq('id', conversationId)
-                  .single()
-                contactName = data?.contact_name ?? 'Contato'
-              }
-            } catch {
-              contactName = 'Contato'
+          // Buscar nome do contato via join contacts
+          let contactName = 'Contato'
+          try {
+            const supabaseClient = getSupabaseBrowser()
+            if (supabaseClient) {
+              const { data } = await supabaseClient
+                .from('inbox_conversations')
+                .select('contacts(name)')
+                .eq('id', conversationId)
+                .single()
+              const contactsData = data?.contacts as { name?: string } | null
+              contactName = contactsData?.name ?? 'Contato'
             }
+          } catch {
+            contactName = 'Contato'
           }
 
           // Check if user is already viewing this conversation
